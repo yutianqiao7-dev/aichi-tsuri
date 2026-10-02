@@ -1,0 +1,738 @@
+<title>潮どき愛知</title>
+<meta name="theme-color" content="#0f3a4a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: 片手で使う1カラムの潮見アプリ。上に日付と基準港、下にタブバー。海図の紙色＋ブイの橙を時合いの色に */
+:root{
+  --bg:#eef3f2; --paper:#f8fbfa; --ink:#0f2a33; --sub:#4d6670; --line:#cfdcdb;
+  --sea:#1f6f86; --sea-soft:#cfe6ea; --buoy:#e0561c; --buoy-soft:#fbe1d4;
+  --good:#1e8a5a; --warn:#b5700c; --bad:#b33a2e; --warn-soft:#fbefd6;
+  --dusk:#f4d9a8;
+  --f-disp:"Dela Gothic One","Hiragino Sans","Yu Gothic",sans-serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0a171c; --paper:#10232a; --ink:#e3eef0; --sub:#93abb2; --line:#22414b;
+  --sea:#5fb8cf; --sea-soft:#163a45; --buoy:#ff7a3d; --buoy-soft:#3b2117;
+  --good:#4cc48b; --warn:#e8a63f; --bad:#ef7466; --warn-soft:#33270f; --dusk:#4a3a1c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0a171c; --paper:#10232a; --ink:#e3eef0; --sub:#93abb2; --line:#22414b;
+  --sea:#5fb8cf; --sea-soft:#163a45; --buoy:#ff7a3d; --buoy-soft:#3b2117;
+  --good:#4cc48b; --warn:#e8a63f; --bad:#ef7466; --warn-soft:#33270f; --dusk:#4a3a1c; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;-webkit-text-size-adjust:100%}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:0 96px}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--buoy);outline-offset:2px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 10px;border-bottom:1px solid var(--line);margin-inline:-16px;padding-inline:16px}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.brand h1{font-family:var(--f-disp);font-weight:400;font-size:22px;margin:0;letter-spacing:.04em;color:var(--sea)}
+.brand h1 span{color:var(--buoy)}
+.brand small{color:var(--sub);font-size:12px}
+.ctl{display:flex;gap:8px;margin-top:8px;align-items:center}
+.datenav{display:flex;align-items:center;gap:4px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:2px}
+.datenav button{border:0;background:none;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;color:var(--sea)}
+.datenav button:hover{background:var(--sea-soft)}
+.datenav .d{min-width:92px;text-align:center;font-weight:700;font-size:14px}
+.ctl select{font-weight:700;flex:1;min-width:0;height:40px;border:1px solid var(--line);border-radius:10px;background:var(--paper);padding:0 8px;font-size:14px}
+.today-btn{height:40px;border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:0 10px;font-size:13px;cursor:pointer}
+
+section{margin-top:18px}
+h2{font-size:13px;letter-spacing:.12em;color:var(--sub);margin:0 0 8px;font-weight:700}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px}
+
+.portrow{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:var(--sub)}
+.portrow select{flex:1;min-width:0;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:0 8px;font-size:14px;color:var(--ink)}
+.sum{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
+.shio{font-family:var(--f-disp);font-size:34px;line-height:1;color:var(--sea);writing-mode:horizontal-tb}
+.shio.big{color:var(--buoy)}
+.sum .meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--sub)}
+.sum .meta b{color:var(--ink);font-weight:500}
+.ext{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}
+.ext div{border-radius:10px;padding:6px 4px;text-align:center;background:var(--bg)}
+.ext .lbl{font-size:11px;color:var(--sub)}
+.ext .t{font-size:16px}
+.ext .h{font-size:11px;color:var(--sub)}
+.ext .hi .lbl{color:var(--sea);font-weight:700}
+.ext .lo .lbl{color:var(--warn);font-weight:700}
+
+.chartbox{position:relative;touch-action:pan-y}
+#chart{width:100%;height:auto;display:block;cursor:crosshair}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--sub);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.timeline{display:flex;align-items:center;gap:10px;margin-top:10px}
+.timeline input{flex:1;accent-color:var(--buoy)}
+.timeline .now{font-size:20px;min-width:62px}
+.state{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;border-radius:999px;padding:2px 10px;background:var(--sea-soft);color:var(--sea);font-weight:500;white-space:nowrap}
+.pill.hot{background:var(--buoy-soft);color:var(--buoy)}
+.pill.mute{background:var(--bg);color:var(--sub)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+
+.windows{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.win{border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:8px;cursor:pointer;text-align:left}
+.win:hover{border-color:var(--buoy)}
+.win .t{font-size:15px;display:block}
+.win .why{font-size:11px;color:var(--sub);display:block;line-height:1.4}
+.win .rk{font-size:11px;color:var(--buoy);font-weight:700}
+
+.fishlist{display:flex;flex-direction:column;gap:8px}
+.frow{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;text-align:left;width:100%}
+.frow:hover{border-color:var(--sea)}
+.frow .nm{font-weight:700;font-size:16px}
+.frow .nm small{font-weight:400;color:var(--sub);font-size:12px;margin-left:6px}
+.frow .sc{font-family:var(--f-disp);font-size:20px;color:var(--sea)}
+.frow .sc.top{color:var(--buoy)}
+.bar{grid-column:1/-1;height:6px;border-radius:3px;background:var(--bg);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--sea);border-radius:3px}
+.bar i.top{background:var(--buoy)}
+.frow .chips{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px}
+.more{margin-top:8px;width:100%;border:1px dashed var(--line);background:none;border-radius:10px;padding:8px;color:var(--sub);cursor:pointer}
+
+.filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--sea);border-color:var(--sea);color:var(--paper)}
+.row2{display:flex;gap:8px;margin-top:8px}
+.row2 select{flex:1;min-width:0;height:38px;border:1px solid var(--line);border-radius:10px;background:var(--paper);padding:0 8px}
+
+.spots{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.spot{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.spot .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.spot h3{margin:0;font-size:17px}
+.spot .where{font-size:12px;color:var(--sub)}
+.spot .score{text-align:right;flex:none}
+.spot .score b{font-family:var(--f-disp);font-weight:400;font-size:20px;color:var(--sea);display:block;line-height:1.1}
+.spot .score b.top{color:var(--buoy)}
+.spot .score small{font-size:10px;color:var(--sub)}
+.spot .fish{display:flex;flex-wrap:wrap;gap:4px}
+.spot .note{font-size:13px;color:var(--sub);margin:0}
+.rule{font-size:12px;background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:6px 8px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.acts a,.acts button{font-size:13px;border:1px solid var(--line);border-radius:8px;padding:5px 10px;background:none;color:var(--sea);text-decoration:none;cursor:pointer}
+
+.fcard{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.fcard h3{margin:0;font-size:17px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.fcard h3 small{font-weight:400;font-size:12px;color:var(--sub)}
+.months{display:grid;grid-template-columns:repeat(12,1fr);gap:2px}
+.months span{font-size:10px;text-align:center;border-radius:3px;padding:2px 0;color:var(--sub);background:var(--bg)}
+.months span.s1{background:var(--sea-soft);color:var(--sea)}
+.months span.s2{background:var(--sea);color:var(--paper);font-weight:700}
+.months span.cur{outline:2px solid var(--buoy);outline-offset:-1px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:13px}
+.kv dt{color:var(--sub)}
+.kv dd{margin:0}
+.tackle{background:var(--bg);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.tackle .th{font-size:12px;font-weight:700;color:var(--sea);letter-spacing:.08em}
+
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--paper);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs div{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
+.tabs button{border:0;background:none;padding:10px 0 12px;font-size:12px;color:var(--sub);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+.tabs button[aria-selected="true"]{color:var(--buoy);font-weight:700}
+
+.wxnow{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:center}
+.wxnow .cond{font-family:var(--f-disp);font-size:24px;line-height:1.1;color:var(--sea)}
+.wxnow .temp{font-size:13px;color:var(--sub)}
+.wxgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}
+.wxgrid div{background:var(--bg);border-radius:10px;padding:6px 4px;text-align:center;min-width:0}
+.wxgrid .lbl{font-size:11px;color:var(--sub)}
+.wxgrid .v{font-size:16px;display:flex;align-items:center;justify-content:center;gap:3px}
+.wxgrid .v small{font-size:10px;color:var(--sub)}
+.wxgrid .s{font-size:11px;color:var(--sub)}
+.wxgrid svg{width:16px;height:16px;flex:none;color:var(--sea)}
+#wxChart{width:100%;height:auto;display:block;margin-top:12px}
+.wxnote{font-size:11px;color:var(--sub);margin-top:6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.wxnote a{color:var(--sea)}
+.verdict{margin-top:10px}
+.foot{font-size:12px;color:var(--sub);margin-top:24px;line-height:1.7}
+.foot a{color:var(--sea)}
+.empty{color:var(--sub);font-size:14px;text-align:center;padding:24px 0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="brand"><h1>潮どき<span>愛知</span></h1><small id="hdrNote">潮位は海上保安庁の推算値を元に計算</small></div>
+  <div class="ctl">
+    <div class="datenav"><button id="prev" aria-label="前の日">◀</button><span class="d num" id="dateLbl"></span><button id="next" aria-label="次の日">▶</button></div>
+    <select id="fishSel" aria-label="魚を選ぶ"></select>
+    <button class="today-btn" id="todayBtn">今</button>
+  </div>
+</header>
+
+<main>
+<div id="tab-today">
+  <section>
+    <div class="card">
+      <div class="portrow"><label for="port">潮見の基準港</label><select id="port"></select></div>
+      <div class="sum">
+        <div class="shio" id="shio"></div>
+        <div class="meta" id="sumMeta"></div>
+      </div>
+      <div class="ext" id="ext"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>潮位と時合い</h2>
+    <div class="card">
+      <div class="chartbox"><svg id="chart" viewBox="0 0 520 250" role="img" aria-label="1日の潮位グラフ"></svg></div>
+      <div class="legend"><span><i style="background:var(--sea)"></i>潮位</span><span><i style="background:var(--dusk)"></i>マヅメ</span><span id="lgBar"><i style="background:var(--buoy)"></i>時合い度（潮の動き＋マヅメ）</span></div>
+      <div class="timeline"><span class="now num" id="timeLbl"></span><input type="range" id="time" min="0" max="1435" step="5" aria-label="時刻"></div>
+      <div class="state" id="state"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="wxHdr">天気・風・波</h2>
+    <div class="card" id="wxCard"><div class="empty">天気予報を読み込み中…</div></div>
+  </section>
+
+  <section>
+    <h2>今日の狙い目の時間帯</h2>
+    <div class="windows" id="windows"></div>
+  </section>
+
+  <section>
+    <h2 id="fishHdr">この時間に釣れやすい魚</h2>
+    <div class="fishlist" id="fishNow"></div>
+    <button class="more" id="moreFish">シーズン外の魚も表示</button>
+  </section>
+</div>
+
+<div id="tab-spots" hidden>
+  <section>
+    <h2>エリア</h2>
+    <div class="filters" id="areaF"></div>
+    <div class="row2">
+      <select id="sortF" aria-label="並び順"><option value="score">いま釣れやすい順</option><option value="area">エリア順</option></select>
+    </div>
+    <div class="spots" id="spotList"></div>
+  </section>
+</div>
+
+<div id="tab-fish" hidden>
+  <section>
+    <h2>魚ごとのシーズンと時合い</h2>
+    <div class="spots" id="fishBook"></div>
+  </section>
+  <div class="foot">
+    <p>時合い度と「釣れやすさ」は、潮の動く速さ・上げ下げ・潮回り・マヅメ・季節から出した目安です。天気、風、水温、ベイトの有無で大きく変わります。</p>
+    <p>釣り場の情報はネット上の釣り場ガイドをまとめたものです。釣り禁止・立入禁止は変わることがあるので、必ず現地の看板と港のルールに従ってください。</p>
+    <p>情報元：
+      <a href="https://tide736.net/" target="_blank" rel="noopener">tide736.net（潮汐）</a>・
+      <a href="https://ameblo.jp/salt-angler1990/entry-12496485344.html" target="_blank" rel="noopener">愛知県の釣り場とポイント27選</a>・
+      <a href="https://www.ishiguro-gr.com/fishingspot_season/chitapeninsula/" target="_blank" rel="noopener">イシグロ 知多半島の釣り場</a>・
+      <a href="https://fishingjapan.jp/fishing/8857" target="_blank" rel="noopener">FISHING JAPAN 愛知県の釣り場特集</a>・
+      <a href="https://tsurispot.com/prefecture/aichi" target="_blank" rel="noopener">ツリスポ 愛知県</a>・
+      <a href="https://kokojimo.jp/read/chitafishingspot01" target="_blank" rel="noopener">ここじも 知多半島釣りスポット</a>・
+      <a href="https://tsurigood.com/kinshi/" target="_blank" rel="noopener">釣りGOOD 愛知の釣り禁止場所</a>・
+      <a href="https://fishing-you.com/point-map/pointmap-aichi" target="_blank" rel="noopener">フィッシング遊 釣り場MAP</a>・
+      <a href="https://web.tsuribito.co.jp/suburb/aichi-haze-point" target="_blank" rel="noopener">つり人 愛知のハゼ釣り場</a>
+    </p>
+  </div>
+</div>
+</main>
+</div>
+
+<nav class="tabs" role="tablist"><div>
+  <button role="tab" data-tab="today" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M2 14c3-3 5-3 8 0s5 3 8 0 3-2 4-1"/><path d="M2 19c3-3 5-3 8 0s5 3 8 0 3-2 4-1"/><circle cx="17" cy="6" r="3"/></svg>潮と時合い</button>
+  <button role="tab" data-tab="spots" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M12 22s7-7 7-12a7 7 0 0 0-14 0c0 5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>釣り場</button>
+  <button role="tab" data-tab="fish" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M3 12c3-5 9-6 14-2l4-3v10l-4-3c-5 4-11 3-14-2z"/><circle cx="8" cy="11" r=".8"/></svg>魚図鑑</button>
+</div></nav>
+
+<script>
+const HARM = __HARM__;
+
+/* 潮見の基準港（tide736 の港コード、緯度経度は度.分 → 10進） */
+const PORTS = {
+  17:{n:"名古屋",lat:35.083,lon:136.883}, 16:{n:"鬼崎（新舞子）",lat:34.9,lon:136.833}, 15:{n:"常滑",lat:34.867,lon:136.833},
+  14:{n:"師崎",lat:34.7,lon:136.983}, 19:{n:"豊浜",lat:34.7,lon:136.93,base:14,dt:6,k:1.012}, 3:{n:"篠島",lat:34.683,lon:137.0}, 13:{n:"武豊",lat:34.85,lon:136.933},
+  12:{n:"寺津（衣浦・一色）",lat:34.817,lon:137.0}, 11:{n:"洲崎（幡豆）",lat:34.783,lon:137.167}, 10:{n:"形原（西浦）",lat:34.783,lon:137.183},
+  8:{n:"三谷",lat:34.817,lon:137.25}, 7:{n:"豊橋",lat:34.717,lon:137.333}, 6:{n:"福江",lat:34.633,lon:137.117},
+  1:{n:"伊良湖",lat:34.583,lon:137.017}, 18:{n:"赤羽根",lat:34.6,lon:137.2}
+};
+
+/* 魚データ。season は1〜12月：0=シーズン外 1=釣れる 2=最盛期。time はマヅメ/日中/夜 の効き。tide.imp は潮の動きの効き（0〜1）、dir は好む潮 */
+const FISH = [
+  {id:"aji",n:"アジ",how:"サビキ・アジング",season:[0,0,0,0,1,2,2,2,2,2,1,0],time:{m:1,d:.55,n:.85},tide:{imp:.9,dir:"up"},tip:"群れの回遊待ち。潮が動き出すタイミングと常夜灯のある夜が狙い目。"},
+  {id:"saba",n:"サバ",how:"サビキ",season:[0,0,0,0,0,1,2,2,2,1,0,0],time:{m:1,d:.6,n:.5},tide:{imp:.85,dir:""},tip:"朝マヅメの回遊に当たると数釣り。潮がよく動く大潮・中潮が有利。"},
+  {id:"iwashi",n:"イワシ・サッパ",how:"サビキ",season:[0,0,0,0,1,2,2,2,2,1,0,0],time:{m:1,d:.7,n:.4},tide:{imp:.7,dir:"up"},tip:"子ども連れでも釣りやすい。上げ潮で港内に入りやすい。"},
+  {id:"haze",n:"ハゼ",how:"ちょい投げ・ミャク釣り",season:[0,0,0,0,0,0,1,2,2,2,1,0],time:{m:.85,d:1,n:.3},tide:{imp:.7,dir:"up"},tip:"満潮に向かう上げ潮が定番。干潮時は浅場から魚が離れる。"},
+  {id:"kisu",n:"シロギス",how:"投げ・ちょい投げ",season:[0,0,0,1,2,2,2,2,2,1,0,0],time:{m:.9,d:1,n:.15},tide:{imp:.7,dir:""},tip:"砂地を広く探る。日中に釣れ、潮が動くと食いが立つ。"},
+  {id:"karei",n:"カレイ",how:"投げ釣り",season:[1,1,2,2,0,0,0,0,0,1,2,2],time:{m:.8,d:1,n:.5},tide:{imp:.75,dir:""},tip:"秋の落ちと春の乗っ込みが狙い目。潮が動く時間に食い込む。"},
+  {id:"kasago",n:"カサゴ",how:"穴釣り・ブラクリ",season:[2,2,2,1,1,1,1,1,1,1,2,2],time:{m:.9,d:.65,n:1},tide:{imp:.3,dir:""},tip:"一年中狙える根魚。潮の影響は小さめで、夜と冬に強い。"},
+  {id:"mebaru",n:"メバル",how:"ウキ・メバリング",season:[2,2,2,2,1,0,0,0,0,0,1,2],time:{m:.9,d:.25,n:1},tide:{imp:.75,dir:"up"},tip:"夜、上げ潮の常夜灯まわり。潮が止まると口を使いにくい。"},
+  {id:"ainame",n:"アイナメ",how:"ブラクリ・投げ",season:[2,2,1,1,0,0,0,0,0,1,2,2],time:{m:1,d:.8,n:.4},tide:{imp:.45,dir:""},tip:"冬の根魚。岩やテトラの際を丁寧に探る。"},
+  {id:"kurodai",n:"クロダイ（チヌ）",how:"落とし込み・フカセ・紀州",season:[0,0,1,2,2,2,1,1,2,2,1,0],time:{m:1,d:.6,n:.85},tide:{imp:.75,dir:"up"},tip:"上げ潮で岸に寄る。濁りと朝夕マヅメが重なれば好機。"},
+  {id:"seabass",n:"シーバス（スズキ）",how:"ルアー",season:[1,1,1,1,1,1,1,1,2,2,2,2],time:{m:1,d:.3,n:.95},tide:{imp:.9,dir:"down"},tip:"下げ潮で流れが効く河口・運河が有望。夜と朝マヅメに強い。"},
+  {id:"aori",n:"アオリイカ",how:"エギング",season:[0,0,0,1,2,2,0,0,2,2,2,1],time:{m:1,d:.55,n:.75},tide:{imp:.7,dir:""},tip:"春は大型、秋は数釣り。マヅメと潮の動き出しにアタリが集中。"},
+  {id:"tachiuo",n:"タチウオ",how:"ワインド・ウキ",season:[0,0,0,0,0,0,0,1,2,2,2,1],time:{m:1,d:.1,n:.85},tide:{imp:.6,dir:""},tip:"夕マヅメから暗くなるまでが勝負。"},
+  {id:"aomono",n:"青物（イナダ・サワラ）",how:"ショアジギング",season:[0,0,0,0,0,1,1,2,2,2,2,1],time:{m:1,d:.45,n:.15},tide:{imp:.9,dir:""},tip:"朝マヅメの回遊待ち。潮通しの良い外向きの堤防・サーフで。"},
+  {id:"hirame",n:"ヒラメ",how:"ルアー・泳がせ",season:[1,0,0,1,2,1,0,0,1,2,2,2],time:{m:1,d:.5,n:.2},tide:{imp:.65,dir:""},tip:"サーフの朝マヅメが定番。ベイトが寄るとチャンス。"},
+  {id:"sayori",n:"サヨリ",how:"ウキ釣り",season:[0,0,0,0,0,0,0,0,1,2,2,1],time:{m:.85,d:1,n:0},tide:{imp:.5,dir:"up"},tip:"日中、表層を群れで回る。撒き餌で寄せる。"},
+  {id:"kawahagi",n:"カワハギ",how:"胴突き",season:[0,0,0,0,0,0,1,2,2,2,1,0],time:{m:.7,d:1,n:0},tide:{imp:.5,dir:""},tip:"日中の釣り。エサ取り名人なので小さめの針で。"},
+  {id:"mejina",n:"メジナ",how:"フカセ・ウキ",season:[2,2,1,1,0,0,0,0,0,1,2,2],time:{m:1,d:.85,n:.2},tide:{imp:.7,dir:""},tip:"磯・テトラ帯で。潮がよく動く時間に浮きやすい。"},
+  {id:"kijihata",n:"キジハタ",how:"ロックフィッシュ",season:[0,0,0,0,1,2,2,2,1,0,0,0],time:{m:1,d:.5,n:.85},tide:{imp:.5,dir:""},tip:"初夏の高級根魚。テトラや護岸の際を。"},
+  {id:"tako",n:"タコ",how:"タコエギ・テンヤ",season:[0,0,0,0,1,2,2,2,1,0,0,0],time:{m:.7,d:1,n:.5},tide:{imp:.4,dir:""},tip:"岸壁の際を底ズル引き。潮が緩い時間でも狙える。"},
+  {id:"hiika",n:"ヒイカ",how:"エギング（小型）",season:[1,0,0,0,0,0,0,0,0,0,1,2],time:{m:.6,d:0,n:1},tide:{imp:.5,dir:""},tip:"冬の夜、常夜灯まわりに群れる。"},
+  {id:"konoshiro",n:"コノシロ",how:"サビキ・引っ掛け",season:[0,0,0,0,0,0,0,0,1,2,2,1],time:{m:1,d:.8,n:.3},tide:{imp:.6,dir:""},tip:"秋に港内へ群れで入る。"}
+];
+function hasTide(p){const P=PORTS[p];return !!P&&!!HARM.ports[P.base||p];}
+/* 仕掛け・エサ・道具（初心者が堤防で始める想定） */
+const TACKLE = {
+  aji:{rig:"サビキ仕掛け（針4〜6号）＋下カゴ。夜や大きめ狙いはアジング（ジグヘッド0.6〜1.5g＋2インチワーム）",bait:"アミエビ（コマセ）。サビキの疑似餌で食わせる",gear:"磯竿2〜3号 3.6〜4.5m＋スピニング2500番、ナイロン3号",tip:"カゴにアミエビを8分目。タナ（深さ）を変えながら群れの層を探す"},
+  saba:{rig:"サビキ仕掛け（針5〜7号、ハリス太め）＋カゴ。小型メタルジグ10〜20gも有効",bait:"アミエビ",gear:"磯竿3号 4.5m＋スピニング3000番、ナイロン3〜4号",tip:"引きが強く仕掛けが絡みやすい。掛けたら素早く抜き上げる"},
+  iwashi:{rig:"サビキ仕掛け（針2〜4号の小さめ）＋下カゴ",bait:"アミエビ",gear:"のべ竿・磯竿どちらでも。子ども用の短い竿で十分",tip:"針が小さい方がよく掛かる。群れが入れば入れ食い"},
+  haze:{rig:"ちょい投げ：天秤＋ハゼ用2本針（袖5〜7号）、オモリ3〜5号。足元ならミャク釣り（ガン玉＋針）",bait:"青イソメ（1〜2cmに切る）、ゴカイ",gear:"ちょい投げ竿1.8〜2.4m＋スピニング2000番、ナイロン2〜3号",tip:"底をズル引きしてアタリを待つ。エサは小さく付けると針掛かりが良い"},
+  kisu:{rig:"天秤＋キス仕掛け（流線5〜8号の2〜3本針）、オモリ8〜25号",bait:"青イソメ、石ゴカイ（ジャリメ）",gear:"投げ竿3.9〜4.2m＋投げ用スピニング、PE1号＋力糸",tip:"遠投してゆっくりサビく（引きずる）。ブルブルというアタリで追い食いを待つ"},
+  karei:{rig:"遊動天秤＋カレイ仕掛け（丸セイゴ・カレイ針12〜13号の2本針）、オモリ20〜25号",bait:"青イソメ・岩イソメをたっぷり房掛け",gear:"投げ竿3.9〜4.2m×2〜3本の置き竿＋竿立て",tip:"置き竿でじっくり待つ。時々サビいてエサを動かすと寄りやすい"},
+  kasago:{rig:"ブラクリ仕掛け（3〜5号）か胴突き1〜2本針。ルアーならジグヘッド5g＋ワーム",bait:"サバの切り身、イカ短冊、青イソメ、オキアミ",gear:"短めの竿1.8〜2.4m＋スピニング2500番、ナイロン3〜4号",tip:"テトラの穴や岸壁際に落とし、底から少し上げて待つ。根掛かり対策に予備を多めに"},
+  mebaru:{rig:"電気ウキ仕掛け（ウキ2〜3号、ハリス1〜1.5号、メバル針8〜10号）。メバリングはジグヘッド1〜2g＋ワーム",bait:"青イソメ、生きたエビ（シラサエビ）",gear:"ウキ釣りは磯竿1〜1.5号 4.5m。メバリングはライトロッド7ft前後＋PE0.3号",tip:"常夜灯の明暗の境目を表層からゆっくり探る"},
+  ainame:{rig:"ブラクリ（4〜6号）か胴突き。投げならカレイ仕掛けと兼用",bait:"岩イソメ、青イソメを房掛け",gear:"2.4m前後の竿＋スピニング2500番、ナイロン3〜4号",tip:"岩やテトラの隙間を丁寧に。アタリがあっても一呼吸待ってから合わせる"},
+  kurodai:{rig:"落とし込み（ガン玉＋チヌ針2〜3号）、フカセ（円錐ウキ＋ハリス1.5〜2号）、紀州釣り（ダンゴ）",bait:"カニ・イガイ（落とし込み）、オキアミ＋配合エサ（フカセ）、練りエサ・コーン",gear:"磯竿1〜1.5号 5.3m＋レバーブレーキ付きリール。落とし込みは専用竿",tip:"警戒心が強いので足音や影に注意。上げ潮で岸寄りする",ng:"豊浜漁港はダンゴ釣り禁止、内海新港は練りエサ禁止"},
+  seabass:{rig:"ミノー・シンキングペンシル（9〜12cm）、バイブレーション、ワーム",bait:"ルアー釣りが基本（生きエサの泳がせ釣りも可）",gear:"シーバスロッド8.6〜9.6ft＋スピニング3000番、PE1号＋リーダー16〜20lb",tip:"流れの変化（明暗、ヨレ）にルアーを通す。下げ潮の効く河口・運河が有望"},
+  aori:{rig:"エギ（春は3.5〜4号、秋の新子は2.5〜3号）",bait:"エギ（疑似餌）。アジの泳がせ（ヤエン）も可",gear:"エギングロッド8ft前後＋スピニング2500番、PE0.6〜0.8号＋リーダー2号",tip:"着底させて2〜3回シャクり、フォールで抱かせる。墨跡がある場所は実績あり"},
+  tachiuo:{rig:"電気ウキ仕掛け（ワイヤーハリス）か、ワインド（ジグヘッド＋専用ワーム）",bait:"キビナゴ、サンマの切り身（ウキ釣り）",gear:"磯竿2〜3号やシーバスロッド＋スピニング3000番",tip:"夕マヅメから暗くなるまで。歯が鋭いのでフィッシュグリップを用意"},
+  aomono:{rig:"メタルジグ20〜40g、トップウォーター、ジグサビキ",bait:"ルアー。泳がせ釣りならアジ",gear:"ショアジギングロッド9.6〜10ft＋スピニング4000〜5000番、PE1.5〜2号＋リーダー30lb",tip:"朝マヅメに遠投してただ巻き・ワンピッチジャーク。ナブラ（魚が水面で騒ぐ）を探す"},
+  hirame:{rig:"ミノー・シンキングペンシル、ジグヘッド＋ワーム、メタルジグ",bait:"ルアー。泳がせ釣りならアジ・イワシ",gear:"サーフ用ロッド10〜11ft＋スピニング4000番、PE1〜1.2号＋リーダー20〜25lb",tip:"離岸流や地形の変化を狙い、底付近をゆっくり引く"},
+  sayori:{rig:"サヨリ用の小型ウキ仕掛け（連玉ウキ・飛ばしウキ）、袖針2〜3号",bait:"アミエビ（撒き餌も同じもの）、オキアミの小粒",gear:"のべ竿4.5m、または磯竿＋小型スピニング",tip:"撒き餌で表層に寄せて、浅いタナで釣る"},
+  kawahagi:{rig:"胴突き3本針（ハゲ針4〜5号）、オモリ5〜10号",bait:"アサリのむき身、青イソメ",gear:"先調子の竿2m前後＋小型リール",tip:"エサを取られやすい。小さなアタリですぐ合わせる"},
+  mejina:{rig:"円錐ウキのフカセ仕掛け、ハリス1.5〜2号、グレ針5〜6号",bait:"オキアミ＋配合エサ（撒き餌）",gear:"磯竿1〜1.5号 5.3m＋レバーブレーキ付きリール",tip:"撒き餌と刺し餌を同調させる。磯やテトラ帯の潮目が狙い目"},
+  kijihata:{rig:"テキサスリグ・ジグヘッド（7〜14g）＋ワーム",bait:"ルアー（ワーム）。エビ・小魚の泳がせも可",gear:"ロックフィッシュロッド8ft前後＋PE1号＋リーダー16lb",tip:"底を取ったらすぐ巻き上げて根掛かりを避ける"},
+  tako:{rig:"タコエギ（2個付け）、タコテンヤ",bait:"テンヤには豚の脂身・カニを巻き付ける",gear:"強めのロッド＋PE2〜3号",tip:"岸壁の際を底ズル引き。乗ったら一気に巻き上げて貼り付かせない"},
+  hiika:{rig:"小型エギ（1.5〜2号）、ヒイカ用スッテ",bait:"エギ（疑似餌）",gear:"ライトゲームロッド7ft前後＋PE0.3〜0.4号",tip:"冬の夜、常夜灯の下でゆっくりシャクる"},
+  konoshiro:{rig:"サビキ仕掛け（針6〜8号）、群れが濃い時は引っ掛け仕掛け",bait:"アミエビ",gear:"磯竿2〜3号＋スピニング3000番",tip:"群れが入ると数釣り。小骨が多いので酢締めがおすすめ"}
+};
+const FBY = Object.fromEntries(FISH.map(f=>[f.id,f]));
+
+const AREAS = ["名古屋港","知多・伊勢湾側","知多・三河湾側","衣浦・西尾","蒲郡","渥美半島"];
+/* 釣り場。port は潮見の基準港 */
+const SPOTS = [
+  {n:"金城埠頭緑地",c:"名古屋市港区",a:0,port:17,type:"岸壁",f:["kurodai","seabass","aji","tachiuo","haze"],note:"駐車場が多くファミリー向け。秋はタチウオの実績あり。"},
+  {n:"稲永公園",c:"名古屋市港区",a:0,port:17,type:"護岸・河口",f:["haze","seabass","kurodai"],note:"駐車場・トイレあり。7月中旬〜10月のハゼが有名（サッカー場前〜野鳥観察館前）。干潮時は水が引くので上げ潮で。"},
+  {n:"飛鳥埠頭・貯木場",c:"飛島村",a:0,port:17,type:"岸壁",f:["kurodai","seabass","haze"],note:"岸壁のヘチ釣りでクロダイが人気。"},
+  {n:"新舞子マリンパーク釣り施設",c:"知多市",a:1,port:16,type:"釣り護岸",f:["kasago","mebaru","ainame","aji","saba","tachiuo"],note:"初心者向け。冬〜春は根魚のちょこ釣り。根掛かりが多いので予備仕掛けを。"},
+  {n:"りんくう釣り護岸",c:"常滑市",a:1,port:15,type:"釣り護岸",f:["kasago","mebaru","ainame","kijihata","kisu","haze","karei"],note:"中部国際空港の近く。秋はちょい投げでキス・ハゼ・カレイ、冬は根魚。"},
+  {n:"冨具崎漁港",c:"美浜町",a:1,port:15,type:"漁港",f:["aomono","aori","aji"],note:"伊勢湾側。トイレ・無料駐車場あり。青物やアオリイカの実績。"},
+  {n:"大井漁港",c:"南知多町",a:1,port:14,type:"漁港",f:["aji","saba","seabass","hiika"],note:"柵はないが足場は安定。",rule:"北側の2本の波止は釣り禁止。中ほどの波止と手前の岸壁、南側の波止周辺で。"},
+  {n:"師崎港",c:"南知多町",a:1,port:14,type:"漁港",f:["kurodai","aori","mebaru","ainame","aji","kawahagi","kisu","karei"],note:"魚種が多い知多半島先端の港。",rule:"明神堤は立入禁止。周辺の岸壁、師崎新堤、林崎内防波堤で。"},
+  {n:"豊浜釣り桟橋",c:"南知多町",a:1,port:19,type:"釣り桟橋",f:["aji","saba","iwashi","sayori","kurodai"],note:"大型駐車場・トイレあり。夏のサビキの名所で混雑しやすいので早朝推奨。",rule:"豊浜漁港では投げ釣り（ちょい投げ・ルアー含む）とダンゴ釣りが禁止。"},
+  {n:"内海新港",c:"南知多町",a:1,port:19,type:"漁港",f:["kisu","hirame","karei","aomono","aji"],note:"GWや海水浴シーズンは駐車場が有料。",rule:"投げ釣りと練りエサ（ダンゴ）は禁止。立入禁止の場所あり。"},
+  {n:"篠島",c:"南知多町（島）",a:2,port:3,type:"漁港",f:["kurodai","mejina","aji","aori"],note:"船で渡る島の釣り。トイレあり。"},
+  {n:"亀崎港",c:"半田市",a:2,port:13,type:"漁港",f:["kurodai","haze","kisu","karei"],note:"秋のハゼ釣りの好ポイント。家族向け。"},
+  {n:"武豊緑地",c:"武豊町",a:2,port:13,type:"護岸",f:["aji","saba","iwashi","sayori"],note:"水深があり夏のサビキが好調。"},
+  {n:"碧南海釣り公園",c:"碧南市",a:3,port:12,type:"海釣り公園",f:["kurodai","aji","saba","sayori","konoshiro","karei","kisu"],note:"約700mの岸壁に柵あり。駐車場・トイレ完備で初心者向け。"},
+  {n:"衣浦トンネル（ウッドデッキ）",c:"碧南市",a:3,port:12,type:"護岸",f:["seabass","kurodai","mebaru"],note:"ウッドデッキで安全柵つき。"},
+  {n:"たこ公園",c:"碧南市",a:3,port:12,type:"護岸",f:["sayori","haze","kisu"],note:"遊具があり子ども連れ向け。足元は浅め。"},
+  {n:"一色漁港",c:"西尾市",a:3,port:12,type:"漁港",f:["haze","kurodai","seabass","kisu","kasago"],note:"駐車場・トイレ完備。ハゼの実績が高く、9〜10月の満潮前の上げ潮と朝マヅメが好機。"},
+  {n:"吉良サンライズパーク",c:"西尾市",a:3,port:11,type:"護岸",f:["seabass","kurodai","mejina"],note:"安全柵ありでファミリー向け。"},
+  {n:"西幡豆漁港",c:"西尾市",a:3,port:11,type:"漁港",f:["kurodai","seabass","kasago"],note:"テトラからのクロダイ狙いが人気。"},
+  {n:"松島突堤",c:"蒲郡市",a:4,port:10,type:"突堤",f:["kurodai","seabass","aji","iwashi","saba","konoshiro","mebaru","kasago","ainame","aori","tako"],note:"テトラ帯。アオリイカの釣果が良い。足元に注意。"},
+  {n:"知柄漁港",c:"蒲郡市",a:4,port:10,type:"漁港",f:["kurodai","seabass","kasago","aori"],note:"岸壁に車を横付けできる。"},
+  {n:"三谷漁港",c:"蒲郡市",a:4,port:8,type:"漁港",f:["aji","karei","haze","kurodai","seabass"],note:"釣り人が少なめでのんびり釣れる。"},
+  {n:"田原市エコパーク",c:"田原市",a:5,port:7,type:"海釣り桟橋",f:["seabass","kurodai","kisu"],note:"常夜灯があり夜釣りもしやすい。"},
+  {n:"豊橋浄化センター",c:"豊橋市",a:5,port:7,type:"護岸",f:["kurodai","seabass","kisu"],note:"駐車場から近い。投げ釣り向け。"},
+  {n:"田原港",c:"田原市",a:5,port:7,type:"漁港",f:["seabass","aji","saba"],note:"大型漁港。岸壁に車を停められる。"},
+  {n:"姫島漁港",c:"田原市",a:5,port:6,type:"漁港",f:["kurodai","seabass","aori"],note:"赤灯台まわりでエギングが人気。"},
+  {n:"宇津江漁港",c:"田原市",a:5,port:6,type:"漁港",f:["kurodai","seabass","mebaru"],note:"大型メバルの実績。"},
+  {n:"伊良湖港",c:"田原市",a:5,port:1,type:"堤防",f:["seabass","kisu","karei","aomono","aori"],note:"駐車場・トイレあり。カレイの実績が高く、秋は青物も。"},
+  {n:"西の浜",c:"田原市",a:5,port:1,type:"サーフ",f:["aomono","seabass","kisu","kurodai","hirame"],note:"青物の回遊が多くショアジギング向け。"},
+  {n:"日出の石門",c:"田原市",a:5,port:1,type:"磯・サーフ",f:["hirame","kurodai","seabass"],note:"ルアーでのヒラメの実績が高い。"},
+  {n:"堀切海岸",c:"田原市",a:5,port:1,type:"サーフ",f:["kisu","hirame"],note:"シロギスの実績が高く大会も開かれる。"},
+  {n:"越戸突堤",c:"田原市",a:5,port:18,type:"突堤",f:["kurodai","mejina","seabass","kasago"],note:"外海に面しクロダイの実績が非常に高い。"},
+  {n:"赤羽根港",c:"田原市",a:5,port:18,type:"堤防",f:["kisu","kurodai","seabass","aomono"],note:"広い堤防でファミリー向け。"},
+  {n:"小松原海岸",c:"豊橋市",a:5,port:18,type:"サーフ",f:["hirame","kisu","seabass"],note:"遠州灘のサーフ。ライブカメラあり。"}
+];
+
+/* ===== 潮位計算（調和定数を合成） ===== */
+const D2R=Math.PI/180, HOUR=3.6e6, DAY=864e5, JST=9*HOUR;
+const W = HARM.speeds.map(s=>s*D2R);
+function tideAt(port,ms){
+  const B=PORTS[port]; if(B&&B.base) return tideAt(B.base,ms-B.dt*60000)*B.k; // 豊浜：師崎から時刻と高さを補正
+  const x=HARM.ports[port], t=(ms-HARM.epoch)/HOUR; let h=x[0];
+  for(let i=0;i<W.length;i++){const a=W[i]*t;h+=x[1+2*i]*Math.cos(a)+x[2+2*i]*Math.sin(a);}
+  return h;
+}
+function dayTide(port,d0){ // d0 = JST 0時のms。5分刻み
+  const pts=[]; for(let m=-60;m<=1500;m+=5) pts.push({m,h:tideAt(port,d0+m*60000)});
+  const ext=[];
+  for(let i=1;i<pts.length-1;i++){
+    const a=pts[i-1].h,b=pts[i].h,c=pts[i+1].h;
+    if((b>a&&b>=c)||(b<a&&b<=c)){
+      const den=a-2*b+c, off=den?0.5*(a-c)/den:0, m=pts[i].m+off*5;
+      if(m>=0&&m<1440) ext.push({m,h:b-0.25*(a-c)*off,hi:b>a});
+    }
+  }
+  return {pts,ext};
+}
+
+/* ===== 天文：日の出入りと月齢 ===== */
+function jd(ms){return ms/DAY+2440587.5}
+function norm(a){return ((a%360)+360)%360}
+function sunLon(ms){const n=jd(ms)-2451545,L=280.46+0.9856474*n,g=(357.528+0.9856003*n)*D2R;return norm(L+1.915*Math.sin(g)+0.02*Math.sin(2*g));}
+function moonLon(ms){
+  const n=jd(ms)-2451545, L=218.316+13.176396*n, M=(134.963+13.064993*n)*D2R, Ms=(357.529+0.98560028*n)*D2R,
+  D=(297.850+12.190749*n)*D2R, F=(93.272+13.22935*n)*D2R, s=Math.sin;
+  return norm(L+6.289*s(M)+1.274*s(2*D-M)+0.658*s(2*D)-0.186*s(Ms)-0.059*s(2*M-2*D)-0.057*s(M-2*D+Ms)+0.053*s(M+2*D)+0.046*s(2*D-Ms)+0.041*s(M-Ms)-0.035*s(D)-0.031*s(M+Ms)-0.015*s(2*F-2*D)+0.011*s(M-4*D));
+}
+function moonAge(ms){
+  let t=ms;
+  for(let i=0;i<4;i++){let e=norm(moonLon(t)-sunLon(t)); if(i>0&&e>180)e-=360; t-=e/12.1907*DAY;}
+  return (ms-t)/DAY;
+}
+const SHIO=["大潮","大潮","中潮","中潮","中潮","中潮","小潮","小潮","小潮","長潮","若潮","中潮","中潮","大潮","大潮","大潮","大潮","中潮","中潮","中潮","中潮","小潮","小潮","小潮","長潮","若潮","中潮","中潮","大潮","大潮","大潮"];
+const SHIO_K={"大潮":1,"中潮":.9,"小潮":.65,"長潮":.45,"若潮":.55};
+function shioName(age){return SHIO[Math.min(30,Math.max(0,Math.ceil(age-0.5)))];}
+function sunTimes(d0,lat,lon){ // JST分
+  const n=Math.round(jd(d0+12*HOUR)-2451545), Jstar=n-lon/360, M=norm(357.5291+0.98560028*Jstar)*D2R,
+  C=1.9148*Math.sin(M)+0.02*Math.sin(2*M)+0.0003*Math.sin(3*M), lam=norm(M/D2R+C+180+102.9372)*D2R,
+  Jt=2451545+Jstar+0.0053*Math.sin(M)-0.0069*Math.sin(2*lam), dec=Math.asin(Math.sin(lam)*Math.sin(23.44*D2R)),
+  cw=(Math.sin(-0.833*D2R)-Math.sin(lat*D2R)*Math.sin(dec))/(Math.cos(lat*D2R)*Math.cos(dec)), w=Math.acos(cw)/D2R;
+  const toMin=j=>((j-2440587.5)*DAY-d0)/60000;
+  return {rise:toMin(Jt-w/360),set:toMin(Jt+w/360)};
+}
+
+/* ===== 天気・風・波（db の weather/latest を読む） ===== */
+const WX={state:"loading",data:null};
+const DIR16=["北","北北東","北東","東北東","東","東南東","南東","南南東","南","南南西","南西","西南西","西","西北西","北西","北北西"];
+function wcode(c){
+  if(c==null) return "—"; if(c===0) return "快晴"; if(c===1) return "晴れ"; if(c===2) return "晴れ時々曇り"; if(c===3) return "曇り";
+  if(c===45||c===48) return "霧"; if(c>=51&&c<=57) return "霧雨"; if(c===61||c===80) return "小雨"; if(c===63||c===81) return "雨";
+  if(c===65||c===82||c===66||c===67) return "強い雨"; if((c>=71&&c<=77)||c===85||c===86) return "雪"; if(c>=95) return "雷雨"; return "—";
+}
+function wxPort(p){const P=WX.data&&WX.data.ports;return P?(P[p]||(PORTS[p]&&PORTS[p].base&&P[PORTS[p].base])||null):null;}
+function wxAt(p,ms){
+  const w=wxPort(p); if(!w) return null;
+  const i=Math.round((ms-w.t0)/HOUR); if(i<0||i>=w.code.length) return null;
+  const g=k=>w[k]?w[k][i]:null;
+  return {code:g("code"),temp:g("temp"),pop:g("pop"),rain:g("rain"),ws:g("ws"),wd:g("wd"),wg:g("wg"),wave:g("wave")};
+}
+function wxK(w){ // 天気による釣りやすさの係数
+  if(!w||w.ws==null) return 1;
+  let k=w.ws>=10?.35:w.ws>=8?.55:w.ws>=6?.75:w.ws>=4.5?.9:1;
+  if(w.code>=95) k*=.3; else if((w.rain||0)>=5) k*=.75;
+  if((w.wave||0)>=2) k*=.6; else if((w.wave||0)>=1.5) k*=.8;
+  return k;
+}
+function wxVerdict(w){
+  if(!w||w.ws==null) return null;
+  if(w.code>=95) return {c:"warn",t:"雷の予報。釣りは中止を"};
+  if(w.ws>=10||(w.wg||0)>=15) return {c:"warn",t:"強風。堤防・磯は危険"};
+  if(w.ws>=7||(w.wave||0)>=1.5) return {c:"warn",t:"風・波が強め。外向きの釣り場は避ける"};
+  if(w.ws>=4.5) return {c:"",t:"やや風あり。重めの仕掛けで"};
+  if((w.rain||0)>=3) return {c:"",t:"雨。足元と雨具に注意"};
+  return {c:"hot",t:"釣り日和"};
+}
+const arrow=d=>`<svg viewBox="0 0 16 16" style="transform:rotate(${(d+180)%360}deg)"><path d="M8 1 L12 9 L8 7.2 L4 9Z M7.2 7 h1.6 v8 h-1.6z" fill="currentColor"/></svg>`;
+const dirName=d=>DIR16[Math.round((((d%360)+360)%360)/22.5)%16];
+
+/* ===== 時合いの計算 ===== */
+function buildDay(port,d0){
+  const {pts,ext}=dayTide(port,d0), P=PORTS[port], sun=sunTimes(d0,P.lat,P.lon);
+  const age=moonAge(d0+12*HOUR), shio=shioName(age);
+  const rate=pts.map((p,i)=>{const a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)];return (b.h-a.h)/((b.m-a.m)/60);}); // cm/h
+  let maxR=0; pts.forEach((p,i)=>{if(p.m>=0&&p.m<1440)maxR=Math.max(maxR,Math.abs(rate[i]));});
+  const hs=pts.filter(p=>p.m>=0&&p.m<=1440).map(p=>p.h);
+  return {port,d0,pts,ext,sun,age,shio,rate,maxR,min:Math.min(...hs),max:Math.max(...hs)};
+}
+function ctxAt(day,m){
+  const i=Math.max(0,Math.min(day.pts.length-1,Math.round((m+60)/5)));
+  const r=day.rate[i], move=day.maxR?Math.abs(r)/day.maxR:0;
+  const {rise,set}=day.sun;
+  const mazume=(m>=rise-60&&m<=rise+90)?"朝マヅメ":(m>=set-90&&m<=set+60)?"夕マヅメ":"";
+  const night=m<rise-60||m>set+60;
+  // 上げ何分・下げ何分（直前の満干から次の満干までの割合）
+  const all=dayTide(day.port,day.d0-DAY).ext.map(e=>({...e,m:e.m-1440})).concat(day.ext,dayTide(day.port,day.d0+DAY).ext.map(e=>({...e,m:e.m+1440})));
+  let prev=null,next=null; for(const e of all){if(e.m<=m)prev=e;else{next=e;break;}}
+  let phase="";
+  if(prev&&next){const fr=Math.round((m-prev.m)/(next.m-prev.m)*10); phase=(prev.hi?"下げ":"上げ")+Math.min(10,Math.max(0,fr))+"分";}
+  const wx=wxAt(day.port,day.d0+m*60000);
+  return {h:day.pts[i].h,r,move,dir:r>2?"up":r<-2?"down":"",mazume,night,phase,shio:day.shio,wx,wk:wxK(wx)};
+}
+function generalScore(c){ // 0〜1：魚種によらない時合い度
+  return Math.min(1,(0.2+0.65*c.move)*(0.6+0.4*SHIO_K[c.shio])+(c.mazume?0.35:0))*c.wk;
+}
+function fishScore(f,month,c){
+  const s=f.season[month]; if(!s) return {v:0,off:true};
+  const sea=s===2?1:.72;
+  const tw=c.mazume?f.time.m:c.night?f.time.n:f.time.d;
+  const imp=f.tide.imp;
+  let dirK=1; if(f.tide.dir&&c.dir) dirK=f.tide.dir===c.dir?1.12:.85;
+  const tideT=(1-imp)+imp*(0.25+0.75*c.move)*dirK;
+  const kShio=1-imp*0.35*(1-SHIO_K[c.shio]);
+  return {v:Math.max(0,Math.min(100,Math.round(sea*tw*tideT*kShio*c.wk*100))),off:false,peak:s===2};
+}
+
+/* ===== 状態 ===== */
+const st={port:15,d0:0,min:0,tab:"today",area:-1,fish:"",sort:"score",showOff:false};
+function jstMidnight(ms){return Math.floor((ms+JST)/DAY)*DAY-JST;}
+function nowMin(){return Math.floor(((Date.now()+JST)%DAY)/60000);}
+try{const p=+localStorage.getItem("tsuri.port"); if(hasTide(p))st.port=p; const f=localStorage.getItem("tsuri.fish"); if(f&&FBY[f])st.fish=f;}catch(e){}
+st.d0=jstMidnight(Date.now()); st.min=Math.round(nowMin()/5)*5;
+let DAYC=null;
+const $=id=>document.getElementById(id);
+const fmt=m=>{m=Math.round(m);m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");};
+const WD="日月火水木金土";
+function monthOf(){return new Date(st.d0+JST+12*HOUR).getUTCMonth();}
+
+/* ===== 描画 ===== */
+function renderHeader(){
+  const d=new Date(st.d0+JST);
+  $("dateLbl").textContent=`${d.getUTCMonth()+1}/${d.getUTCDate()}(${WD[d.getUTCDay()]})`;
+  const sel=$("port");
+  if(!sel.options.length){
+    [17,16,15,19,14,3,13,12,11,10,8,7,6,1,18].filter(hasTide).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=PORTS[k].n;sel.appendChild(o);});
+  }
+  sel.value=String(st.port);
+  const fs=$("fishSel"), mo=monthOf();
+  fs.innerHTML=`<option value="">すべての魚</option>`+FISH.map(f=>`<option value="${f.id}">${f.n}${f.season[mo]?"":"（シーズン外）"}</option>`).join("");
+  fs.value=st.fish;
+}
+function renderSummary(){
+  const D=DAYC;
+  $("shio").textContent=D.shio; $("shio").className="shio"+(D.shio==="大潮"?" big":"");
+  $("sumMeta").innerHTML=`<span>月齢 <b class="num">${D.age.toFixed(1)}</b></span><span>日の出 <b class="num">${fmt(D.sun.rise)}</b></span><span>日の入 <b class="num">${fmt(D.sun.set)}</b></span><span>干満差 <b class="num">${Math.round(D.max-D.min)}cm</b></span>`;
+  $("ext").innerHTML=D.ext.map(e=>`<div class="${e.hi?"hi":"lo"}"><div class="lbl">${e.hi?"満潮":"干潮"}</div><div class="t num">${fmt(e.m)}</div><div class="h num">${Math.round(e.h)}cm</div></div>`).join("")
+    || `<div class="empty">データなし</div>`;
+  $("ext").style.gridTemplateColumns=`repeat(${Math.max(1,D.ext.length)},1fr)`;
+}
+function renderChart(){
+  $("lgBar").lastChild.textContent=st.fish?FBY[st.fish].n+"の釣れやすさ":"時合い度（潮の動き＋マヅメ）";
+  const D=DAYC, svg=$("chart"), Wd=520, L=34, R=10, T=12, CH=170, BAR=22, xs=m=>L+(m/1440)*(Wd-L-R);
+  const lo=Math.floor((D.min-10)/50)*50, hi=Math.ceil((D.max+10)/50)*50, ys=h=>T+CH-(h-lo)/(hi-lo)*CH;
+  let s="";
+  // マヅメ帯
+  [[D.sun.rise-60,D.sun.rise+90],[D.sun.set-90,D.sun.set+60]].forEach(([a,b])=>{s+=`<rect x="${xs(Math.max(0,a))}" y="${T}" width="${xs(Math.min(1440,b))-xs(Math.max(0,a))}" height="${CH}" fill="var(--dusk)" opacity=".7"/>`;});
+  // 夜
+  s+=`<rect x="${xs(0)}" y="${T}" width="${xs(D.sun.rise)-xs(0)}" height="${CH}" fill="var(--sea-soft)" opacity=".55"/>`;
+  s+=`<rect x="${xs(D.sun.set)}" y="${T}" width="${xs(1440)-xs(D.sun.set)}" height="${CH}" fill="var(--sea-soft)" opacity=".55"/>`;
+  // グリッド
+  for(let h=lo;h<=hi;h+=50){s+=`<line x1="${L}" x2="${Wd-R}" y1="${ys(h)}" y2="${ys(h)}" stroke="var(--line)" stroke-width="1"/><text x="${L-4}" y="${ys(h)+3}" font-size="9" text-anchor="end" fill="var(--sub)" font-family="IBM Plex Mono,monospace">${h}</text>`;}
+  for(let hr=0;hr<=24;hr+=3){s+=`<line x1="${xs(hr*60)}" x2="${xs(hr*60)}" y1="${T}" y2="${T+CH}" stroke="var(--line)" stroke-width="1" stroke-dasharray="2 3"/><text x="${xs(hr*60)}" y="${T+CH+BAR+16}" font-size="10" text-anchor="middle" fill="var(--sub)" font-family="IBM Plex Mono,monospace">${hr}</text>`;}
+  // 潮位カーブ
+  const P=D.pts.filter(p=>p.m>=0&&p.m<=1440);
+  const path=P.map((p,i)=>(i?"L":"M")+xs(p.m).toFixed(1)+" "+ys(p.h).toFixed(1)).join(" ");
+  s+=`<path d="${path} L${xs(1440)} ${T+CH} L${xs(0)} ${T+CH}Z" fill="var(--sea)" opacity=".16"/>`;
+  s+=`<path d="${path}" fill="none" stroke="var(--sea)" stroke-width="2.2"/>`;
+  D.ext.forEach(e=>{s+=`<circle cx="${xs(e.m)}" cy="${ys(e.h)}" r="3" fill="${e.hi?"var(--sea)":"var(--warn)"}"/>`;});
+  // 時合い度バー
+  const by=T+CH+4;
+  for(let m=0;m<1440;m+=15){const g=momentScore(ctxAt(D,m+7));s+=`<rect x="${xs(m)}" y="${by}" width="${xs(m+15)-xs(m)+.3}" height="${BAR-6}" fill="var(--buoy)" opacity="${(0.06+0.94*g*g).toFixed(2)}"/>`;}
+  // 選択時刻
+  const c=ctxAt(D,st.min);
+  s+=`<line x1="${xs(st.min)}" x2="${xs(st.min)}" y1="${T}" y2="${by+BAR-6}" stroke="var(--ink)" stroke-width="1.5"/><circle cx="${xs(st.min)}" cy="${ys(c.h)}" r="5" fill="var(--paper)" stroke="var(--ink)" stroke-width="2"/>`;
+  svg.innerHTML=s;
+}
+function renderState(){
+  const c=ctxAt(DAYC,st.min), g=generalScore(c);
+  $("timeLbl").textContent=fmt(st.min); $("time").value=st.min;
+  const pills=[];
+  pills.push(`<span class="pill">潮位 <span class="num">${Math.round(c.h)}cm</span></span>`);
+  if(c.phase) pills.push(`<span class="pill ${/上げ[2-7]|下げ[3-8]/.test(c.phase)?"hot":""}">${c.phase}</span>`);
+  pills.push(`<span class="pill ${c.move>.6?"hot":c.move<.2?"mute":""}">${c.move<.2?"潮止まり付近":c.move>.6?"よく動いている":"動いている"} <span class="num">${Math.abs(c.r).toFixed(0)}cm/h</span></span>`);
+  if(c.wk<.8) pills.push(`<span class="pill warn">風・波で減点</span>`);
+  if(c.mazume) pills.push(`<span class="pill hot">${c.mazume}</span>`); else if(c.night) pills.push(`<span class="pill mute">夜</span>`);
+  pills.push(`<span class="pill ${g>.7?"hot":""}">時合い度 <span class="num">${Math.round(g*100)}</span></span>`);
+  $("state").innerHTML=pills.join("");
+  $("fishHdr").textContent=st.fish?`${fmt(st.min)} の${FBY[st.fish].n}の釣れやすさ（${PORTS[st.port].n}基準）`:`${fmt(st.min)} に釣れやすい魚（${PORTS[st.port].n}基準）`;
+}
+function renderWeather(){
+  const card=$("wxCard"), P=PORTS[st.port];
+  const windy=`<a href="https://www.windy.com/?${P.lat},${P.lon},10" target="_blank" rel="noopener">Windyで見る</a>`;
+  if(WX.state==="loading"){card.innerHTML=`<div class="empty">天気予報を読み込み中…</div>`;return;}
+  const w=wxAt(st.port,st.d0+st.min*60000);
+  if(!w){
+    card.innerHTML=`<div class="empty">${WX.state==="ok"?"この日の予報はまだありません（予報は7日先まで）":"天気予報を読み込めませんでした"}</div><div class="wxnote"><span></span>${windy}</div>`;
+    return;
+  }
+  const v=wxVerdict(w);
+  let html=`<div class="wxnow"><div class="cond">${wcode(w.code)}</div><div class="temp"><span class="num">${fmt(st.min)}</span> の予報・<span class="num">${w.temp}℃</span></div></div>
+  <div class="wxgrid">
+    <div><div class="lbl">風</div><div class="v num">${w.wd!=null?arrow(w.wd):""}${w.ws}<small>m/s</small></div><div class="s">${w.wd!=null?dirName(w.wd)+"の風":"—"}</div></div>
+    <div><div class="lbl">最大瞬間</div><div class="v num">${w.wg??"—"}<small>m/s</small></div><div class="s">突風</div></div>
+    <div><div class="lbl">降水確率</div><div class="v num">${w.pop??"—"}<small>%</small></div><div class="s num">${w.rain??0}mm/h</div></div>
+    <div><div class="lbl">波の高さ</div><div class="v num">${w.wave!=null?w.wave.toFixed(1):"—"}<small>m</small></div><div class="s">沖合の目安</div></div>
+  </div>`;
+  if(v) html+=`<div class="verdict"><span class="pill ${v.c}">${v.t}</span></div>`;
+  const Wd=520,L=34,R=10,xs=h=>L+(h/24)*(Wd-L-R),T=8,H=60,bw=(Wd-L-R)/24;
+  let s="", mx=10;
+  for(let h=0;h<24;h++){const x=wxAt(st.port,st.d0+h*HOUR); if(x&&x.wg!=null) mx=Math.max(mx,Math.ceil(x.wg/5)*5);}
+  const ys=v=>T+H-(v/mx)*H;
+  for(let v=0;v<=mx;v+=5) s+=`<line x1="${L}" x2="${Wd-R}" y1="${ys(v)}" y2="${ys(v)}" stroke="var(--line)"/><text x="${L-4}" y="${ys(v)+3}" font-size="9" text-anchor="end" fill="var(--sub)" font-family="IBM Plex Mono,monospace">${v}</text>`;
+  for(let h=0;h<24;h++){
+    const x=wxAt(st.port,st.d0+h*HOUR); if(!x||x.ws==null) continue;
+    const col=x.ws>=8?"var(--bad)":x.ws>=5?"var(--warn)":"var(--sea)";
+    s+=`<rect x="${xs(h)+1.5}" y="${ys(x.ws)}" width="${bw-3}" height="${T+H-ys(x.ws)}" rx="2" fill="${col}" opacity=".85"/>`;
+    if(x.wg!=null) s+=`<line x1="${xs(h)+2}" x2="${xs(h)+bw-2}" y1="${ys(x.wg)}" y2="${ys(x.wg)}" stroke="${col}" stroke-width="1.5"/>`;
+    if(x.pop!=null) s+=`<rect x="${xs(h)+1.5}" y="${T+H+6}" width="${bw-3}" height="8" rx="2" fill="var(--sea)" opacity="${(0.06+0.94*x.pop/100).toFixed(2)}"/>`;
+  }
+  for(let h=0;h<=24;h+=3) s+=`<text x="${xs(h)}" y="${T+H+28}" font-size="10" text-anchor="middle" fill="var(--sub)" font-family="IBM Plex Mono,monospace">${h}</text>`;
+  s+=`<text x="${L-4}" y="${T+H+13}" font-size="9" text-anchor="end" fill="var(--sub)">雨</text>`;
+  s+=`<line x1="${xs(st.min/60)}" x2="${xs(st.min/60)}" y1="${T}" y2="${T+H+14}" stroke="var(--ink)" stroke-width="1.5"/>`;
+  html+=`<svg id="wxChart" viewBox="0 0 520 ${T+H+34}" role="img" aria-label="1日の風速と降水確率">${s}</svg>`;
+  const age=(Date.now()-WX.data.updated)/HOUR, d=new Date(WX.data.updated+JST);
+  html+=`<div class="wxnote"><span>棒＝平均風速、線＝最大瞬間風速（m/s）、下の帯＝降水確率。${age>12?`<b style="color:var(--warn)">予報の更新から${Math.floor(age)}時間たっています。</b>`:""}更新 <span class="num">${d.getUTCMonth()+1}/${d.getUTCDate()} ${fmt(d.getUTCHours()*60+d.getUTCMinutes())}</span>・Open-Meteo</span>${windy}</div>`;
+  card.innerHTML=html;
+}
+function momentScore(c){return st.fish?fishScore(FBY[st.fish],monthOf(),c).v/100:generalScore(c);}
+function renderWindows(){
+  const D=DAYC, arr=[];
+  for(let m=0;m<1440;m+=15) arr.push({m,g:momentScore(ctxAt(D,m+7))});
+  const picks=[];
+  arr.slice().sort((a,b)=>b.g-a.g).forEach(a=>{if(picks.length<3&&picks.every(p=>Math.abs(p.m-a.m)>=180))picks.push(a);});
+  picks.sort((a,b)=>a.m-b.m);
+  if(st.fish&&!FBY[st.fish].season[monthOf()]){$("windows").innerHTML=`<div class="empty" style="grid-column:1/-1">${FBY[st.fish].n}はこの時期シーズン外です</div>`;return;}
+  $("windows").innerHTML=picks.map(p=>{
+    const c=ctxAt(D,p.m+30), why=[c.mazume,c.phase,c.move>.6?"流れ速い":""].filter(Boolean).join("・");
+    return `<button class="win" data-m="${p.m}"><span class="rk">${st.fish?FBY[st.fish].n+" ":"時合い度 "}<span class="num">${Math.round(p.g*100)}</span></span><span class="t num">${fmt(Math.max(0,p.m-30))}〜${p.m+60>=1440?"24:00":fmt(p.m+60)}</span><span class="why">${why||"潮が動く時間"}</span></button>`;
+  }).join("");
+}
+function chipsFor(f,c,r){
+  const ch=[];
+  if(r.peak) ch.push(`<span class="pill hot">最盛期</span>`); else ch.push(`<span class="pill">シーズン中</span>`);
+  const tw=c.mazume?f.time.m:c.night?f.time.n:f.time.d;
+  if(tw>=.85) ch.push(`<span class="pill">${c.mazume||(c.night?"夜":"日中")}に強い</span>`);
+  else if(tw<.35) ch.push(`<span class="pill mute">${c.night?"夜":"日中"}は不向き</span>`);
+  if(f.tide.dir&&c.dir&&f.tide.imp>=.5) ch.push(f.tide.dir===c.dir?`<span class="pill">${c.dir==="up"?"上げ潮":"下げ潮"}が好み</span>`:`<span class="pill mute">${f.tide.dir==="up"?"上げ潮":"下げ潮"}向き</span>`);
+  if(f.tide.imp>=.7&&c.move<.2) ch.push(`<span class="pill warn">潮止まりで渋い</span>`);
+  ch.push(`<span class="pill mute">${f.how}</span>`);
+  return ch.join("");
+}
+function renderFishNow(){
+  const c=ctxAt(DAYC,st.min), mo=monthOf();
+  const list=FISH.filter(f=>!st.fish||f.id===st.fish).map(f=>({f,r:fishScore(f,mo,c)})).filter(x=>st.fish||st.showOff||!x.r.off).sort((a,b)=>b.r.v-a.r.v);
+  $("moreFish").hidden=!!st.fish;
+  const top=list.length?list[0].r.v:0;
+  $("fishNow").innerHTML=list.map(({f,r},i)=>{
+    const hot=!r.off&&i<3&&r.v>=40;
+    return `<button class="frow" data-fish="${f.id}"><span class="nm">${f.name||f.n}<small>${r.off?"シーズン外":"釣り場 "+SPOTS.filter(s=>s.f.includes(f.id)).length+"か所"}</small></span><span class="sc num ${hot?"top":""}">${r.off?"—":r.v}</span><span class="bar"><i class="${hot?"top":""}" style="width:${r.v}%"></i></span><span class="chips">${r.off?`<span class="pill mute">${f.how}</span>`:chipsFor(f,c,r)}</span></button>`;
+  }).join("")||`<div class="empty">この時期に釣れる魚が見つかりません</div>`;
+  $("moreFish").textContent=st.showOff?"シーズン中の魚だけ表示":"シーズン外の魚も表示";
+}
+function spotScore(s){
+  const mo=monthOf(), d=s.port===DAYC.port?DAYC:buildDayCached(s.port), c=ctxAt(d,st.min);
+  let best=0,bf=null;
+  s.f.forEach(id=>{const r=fishScore(FBY[id],mo,c);if(r.v>best){best=r.v;bf=id;}});
+  return {v:best,fish:bf,c};
+}
+const dayCache={};
+function buildDayCached(p){const k=p+":"+st.d0;return dayCache[k]||(dayCache[k]=buildDay(p,st.d0));}
+function renderSpots(){
+  const af=$("areaF");
+  if(!af.children.length){
+    af.innerHTML=[`<button class="chip" data-a="-1">すべて</button>`].concat(AREAS.map((a,i)=>`<button class="chip" data-a="${i}">${a}</button>`)).join("");
+  }
+  [...af.children].forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.a===st.area)));
+  $("sortF").value=st.sort;
+  const mo=monthOf();
+  let list=SPOTS.filter(s=>(st.area<0||s.a===st.area)&&(!st.fish||s.f.includes(st.fish))).map(s=>({s,sc:spotScore(s)}));
+  if(st.fish) list.forEach(x=>{x.sc={...x.sc,v:fishScore(FBY[st.fish],mo,x.sc.c).v,fish:st.fish};});
+  if(st.sort==="score") list.sort((a,b)=>b.sc.v-a.sc.v); else list.sort((a,b)=>a.s.a-b.s.a);
+  const q=s=>encodeURIComponent(s.n+" "+s.c+" 愛知県");
+  $("spotList").innerHTML=list.map(({s,sc},i)=>{
+    const fish=s.f.map(id=>{const r=fishScore(FBY[id],mo,sc.c);return `<span class="pill ${r.off?"mute":r.v>=55?"hot":""}">${FBY[id].n}</span>`;}).join("");
+    return `<article class="spot">
+      <div class="hd"><div><h3>${s.n}</h3><div class="where">${AREAS[s.a]}・${s.c}・${s.type}</div></div>
+      <div class="score"><b class="num ${st.sort==="score"&&i<3&&sc.v>=45?"top":""}">${sc.v||"—"}</b><small>${sc.fish?FBY[sc.fish].n:"シーズン外"}</small></div></div>
+      <div class="fish">${fish}</div>
+      ${sc.c.wx&&sc.c.wx.ws!=null?`<div class="fish"><span class="pill ${sc.c.wx.ws>=7?"warn":"mute"}">${wcode(sc.c.wx.code)}・${dirName(sc.c.wx.wd)} <span class="num">${sc.c.wx.ws}m/s</span>${sc.c.wx.wave!=null?`・波 <span class="num">${sc.c.wx.wave.toFixed(1)}m</span>`:""}</span></div>`:""}
+      <p class="note">${s.note}</p>
+      ${s.rule?`<div class="rule">⚠ ${s.rule}</div>`:""}
+      <div class="acts"><button data-port="${s.port}">潮を見る（${PORTS[s.port].n}）</button><a href="https://www.google.com/maps/search/?api=1&query=${q(s)}" target="_blank" rel="noopener">地図で開く</a></div>
+    </article>`;
+  }).join("")||`<div class="empty">条件に合う釣り場がありません</div>`;
+}
+function renderBook(){
+  const mo=monthOf(), c=ctxAt(DAYC,st.min), tl={m:"マヅメ",d:"日中",n:"夜"};
+  $("fishBook").innerHTML=FISH.filter(f=>!st.fish||f.id===st.fish).map(f=>{
+    const best=Object.entries(f.time).sort((a,b)=>b[1]-a[1]).filter(([,v])=>v>=.8).map(([k])=>tl[k]).join("・");
+    const r=fishScore(f,mo,c);
+    const spots=SPOTS.filter(s=>s.f.includes(f.id)).map(s=>s.n), T=TACKLE[f.id];
+    return `<article class="fcard" id="fish-${f.id}"><h3>${f.n}<small>${f.how}</small></h3>
+      <div class="months">${f.season.map((v,i)=>`<span class="num s${v} ${i===mo?"cur":""}">${i+1}</span>`).join("")}</div>
+      <dl class="kv"><dt>時間帯</dt><dd>${best}</dd><dt>潮</dt><dd>${f.tide.imp>=.7?"よく動く潮が大事":f.tide.imp>=.45?"動いている方が良い":"潮の影響は小さい"}${f.tide.dir?`（${f.tide.dir==="up"?"上げ潮":"下げ潮"}向き）`:""}</dd>
+      <dt>いま</dt><dd>${r.off?"シーズン外":`釣れやすさ <b class="num">${r.v}</b>（${fmt(st.min)}・${PORTS[st.port].n}基準）`}</dd>
+      <dt>コツ</dt><dd>${f.tip}</dd></dl>
+      ${T?`<div class="tackle"><div class="th">仕掛けとエサ</div><dl class="kv"><dt>仕掛け</dt><dd>${T.rig}</dd><dt>エサ</dt><dd>${T.bait}</dd><dt>道具</dt><dd>${T.gear}</dd><dt>釣り方</dt><dd>${T.tip}</dd></dl>${T.ng?`<div class="rule">⚠ ${T.ng}</div>`:""}</div>`:""}
+      <dl class="kv"><dt>釣り場</dt><dd>${spots.join("、")||"—"}</dd></dl>
+      <div class="acts"><button data-spotfish="${f.id}">この魚の釣り場を見る</button></div></article>`;
+  }).join("");
+}
+function renderAll(){
+  DAYC=buildDayCached(st.port);
+  renderHeader(); renderSummary(); renderChart(); renderState(); renderWeather(); renderWindows(); renderFishNow();
+  if(st.tab==="spots") renderSpots(); if(st.tab==="fish") renderBook();
+}
+function setTab(t){
+  st.tab=t;
+  ["today","spots","fish"].forEach(k=>{$("tab-"+k).hidden=k!==t;});
+  document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===t)));
+  if(t==="spots") renderSpots(); if(t==="fish") renderBook();
+  window.scrollTo(0,0);
+}
+
+/* ===== 操作 ===== */
+$("prev").onclick=()=>{st.d0-=DAY;renderAll();};
+$("next").onclick=()=>{st.d0+=DAY;renderAll();};
+$("todayBtn").onclick=()=>{st.d0=jstMidnight(Date.now());st.min=Math.round(nowMin()/5)*5;renderAll();};
+$("fishSel").onchange=e=>{st.fish=e.target.value;try{localStorage.setItem("tsuri.fish",st.fish);}catch(_){}renderAll();};
+$("port").onchange=e=>{st.port=+e.target.value;try{localStorage.setItem("tsuri.port",st.port);}catch(_){}renderAll();};
+function renderMoment(){renderChart();renderState();renderWeather();renderFishNow();}
+$("time").oninput=e=>{st.min=+e.target.value;renderMoment();};
+function chartPick(ev){
+  const svg=$("chart"), r=svg.getBoundingClientRect(), x=(ev.clientX-r.left)/r.width*520;
+  st.min=Math.max(0,Math.min(1435,Math.round(((x-34)/(520-44))*1440/5)*5));
+  renderMoment();
+}
+let dragging=false;
+$("chart").addEventListener("pointerdown",e=>{dragging=true;chartPick(e);});
+window.addEventListener("pointermove",e=>{if(dragging)chartPick(e);});
+window.addEventListener("pointerup",()=>{dragging=false;});
+$("windows").onclick=e=>{const b=e.target.closest(".win");if(b){st.min=+b.dataset.m;renderMoment();}};
+function pickFish(id){st.fish=id;st.area=-1;try{localStorage.setItem("tsuri.fish",id);}catch(_){}renderAll();setTab("spots");}
+$("fishNow").onclick=e=>{const b=e.target.closest(".frow");if(b)pickFish(b.dataset.fish);};
+$("moreFish").onclick=()=>{st.showOff=!st.showOff;renderFishNow();};
+$("areaF").onclick=e=>{const b=e.target.closest(".chip");if(b){st.area=+b.dataset.a;renderSpots();}};
+$("sortF").onchange=e=>{st.sort=e.target.value;renderSpots();};
+$("spotList").onclick=e=>{const b=e.target.closest("button[data-port]");if(b){st.port=+b.dataset.port;try{localStorage.setItem("tsuri.port",st.port);}catch(_){}renderAll();setTab("today");}};
+$("fishBook").onclick=e=>{const b=e.target.closest("button[data-spotfish]");if(b)pickFish(b.dataset.spotfish);};
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+renderAll();
+/* Claude の外（GitHub Pages など）では Open-Meteo から直接取る。weather.py と同じ形に揃える */
+const WXPTS={17:[35.08,136.88],16:[34.9,136.83],15:[34.87,136.83],14:[34.7,136.98],19:[34.7,136.93],3:[34.68,137.0],13:[34.85,136.93],12:[34.82,137.0],11:[34.78,137.17],10:[34.78,137.18],8:[34.82,137.25],7:[34.72,137.33],6:[34.63,137.12],1:[34.58,137.02],18:[34.6,137.2]};
+async function fetchWeather(){
+  const ids=Object.keys(WXPTS), lat=ids.map(k=>WXPTS[k][0]).join(","), lon=ids.map(k=>WXPTS[k][1]).join(",");
+  const q=`latitude=${lat}&longitude=${lon}&timezone=Asia%2FTokyo&forecast_days=7&timeformat=unixtime`;
+  const [wx,mar]=await Promise.all([
+    fetch("https://api.open-meteo.com/v1/forecast?"+q+"&hourly=weather_code,temperature_2m,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms").then(r=>r.json()),
+    fetch("https://marine-api.open-meteo.com/v1/marine?"+q+"&hourly=wave_height").then(r=>r.json()).catch(()=>null)
+  ]);
+  const out={updated:Date.now(),source:"Open-Meteo",ports:{}};
+  ids.forEach((k,i)=>{
+    const h=wx[i].hourly, rd=(a,n=1)=>a.map(v=>v==null?null:+v.toFixed(n));
+    const d={t0:h.time[0]*1000,code:h.weather_code,temp:rd(h.temperature_2m,0),pop:h.precipitation_probability,rain:rd(h.precipitation),ws:rd(h.wind_speed_10m),wd:rd(h.wind_direction_10m,0),wg:rd(h.wind_gusts_10m)};
+    if(mar&&mar[i]&&mar[i].hourly) d.wave=rd(mar[i].hourly.wave_height,2);
+    out.ports[k]=d;
+  });
+  return out;
+}
+(async()=>{
+  const fail=()=>{WX.state="none";renderAll();};
+  if(!window.claude||!window.claude.use){
+    try{WX.data=await fetchWeather();WX.state="ok";renderAll();}catch(e){fail();}
+    return;
+  }
+  let db=null; try{db=await window.claude.use("db");}catch(e){}
+  if(!db) return fail();
+  try{
+    db.doc("weather/latest").onSnapshot(s=>{WX.data=s.exists?s.data():null;WX.state=WX.data?"ok":"none";for(const k in dayCache)delete dayCache[k];renderAll();},fail);
+  }catch(e){fail();}
+})();
+</script>
