@@ -1,0 +1,369 @@
+<title>ウキまち</title>
+<meta name="theme-color" content="#0f3a4a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: 片手で遊ぶ1画面。上にモード切替、中央に水面、下に親指で押す大きなボタン。色は潮どき愛知と共通 */
+:root{
+  --bg:#eef3f2; --paper:#f8fbfa; --ink:#0f2a33; --sub:#4d6670; --line:#cfdcdb;
+  --sea:#1f6f86; --sea-soft:#cfe6ea; --buoy:#e0561c; --buoy-soft:#fbe1d4;
+  --good:#1e8a5a; --warn:#b5700c; --bad:#b33a2e; --warn-soft:#fbefd6;
+  --f-disp:"Dela Gothic One","Hiragino Sans","Yu Gothic",sans-serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0a171c; --paper:#10232a; --ink:#e3eef0; --sub:#93abb2; --line:#22414b;
+  --sea:#5fb8cf; --sea-soft:#163a45; --buoy:#ff7a3d; --buoy-soft:#3b2117;
+  --good:#4cc48b; --warn:#e8a63f; --bad:#ef7466; --warn-soft:#33270f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0a171c; --paper:#10232a; --ink:#e3eef0; --sub:#93abb2; --line:#22414b;
+  --sea:#5fb8cf; --sea-soft:#163a45; --buoy:#ff7a3d; --buoy-soft:#3b2117;
+  --good:#4cc48b; --warn:#e8a63f; --bad:#ef7466; --warn-soft:#33270f; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:520px;margin:0 auto;padding-inline:16px;padding-block:0 32px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--buoy);outline-offset:2px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 10px;margin-inline:-16px;padding-inline:16px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.brand h1{font-family:var(--f-disp);font-weight:400;font-size:22px;margin:0;color:var(--sea);letter-spacing:.04em}
+.brand h1 span{color:var(--buoy)}
+.brand a{font-size:12px;color:var(--sea)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:3px;margin-top:8px}
+.seg button{border:0;background:none;border-radius:9px;padding:7px 0;font-size:14px;cursor:pointer;color:var(--sub)}
+.seg button[aria-selected="true"]{background:var(--sea);color:var(--paper);font-weight:700}
+
+section{margin-top:14px}
+.stats{display:flex;justify-content:space-between;font-size:12px;color:var(--sub);gap:8px;flex-wrap:wrap}
+.stats b{color:var(--ink);font-weight:500}
+.pond{position:relative;margin-top:8px;border-radius:16px;overflow:hidden;border:1px solid var(--line);touch-action:manipulation;user-select:none;-webkit-user-select:none}
+#cv{display:block;width:100%;height:300px}
+.msg{position:absolute;left:0;right:0;top:14px;text-align:center;font-weight:700;font-size:15px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.45);pointer-events:none;padding-inline:12px}
+.msg.big{font-family:var(--f-disp);font-weight:400;font-size:30px;top:40%}
+.meters{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;margin-top:10px;font-size:12px;color:var(--sub)}
+.meter{height:12px;border-radius:6px;background:var(--paper);border:1px solid var(--line);overflow:hidden}
+.meter i{display:block;height:100%;width:0;border-radius:6px;background:var(--sea);transition:width .08s linear}
+.meter.ten i{background:var(--good)}
+.meter.ten.mid i{background:var(--warn)}
+.meter.ten.hi i{background:var(--bad)}
+.act{margin-top:12px;width:100%;height:76px;border:0;border-radius:18px;background:var(--buoy);color:#fff;font-family:var(--f-disp);font-size:24px;letter-spacing:.06em;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;box-shadow:0 4px 0 color-mix(in srgb,var(--buoy) 60%,#000)}
+.act:active{transform:translateY(3px);box-shadow:0 1px 0 color-mix(in srgb,var(--buoy) 60%,#000)}
+.act.reel{background:var(--sea);box-shadow:0 4px 0 color-mix(in srgb,var(--sea) 60%,#000)}
+.hint{font-size:12px;color:var(--sub);margin-top:8px;text-align:center}
+
+.result{margin-top:12px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:baseline}
+.result .fn{font-size:20px;font-weight:700}
+.result .sz{font-family:var(--f-disp);font-size:28px;color:var(--buoy)}
+.result .note{grid-column:1/-1;font-size:13px;color:var(--sub)}
+.badge{display:inline-block;font-size:11px;border-radius:999px;padding:1px 8px;background:var(--buoy-soft);color:var(--buoy);font-weight:700;margin-left:6px;vertical-align:3px}
+
+.zk{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.zc{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center;min-width:0}
+.zc canvas{width:100%;height:44px;display:block}
+.zc .n{font-size:13px;font-weight:700;margin-top:4px;overflow-wrap:anywhere}
+.zc .r{font-size:11px;color:var(--sub)}
+.zc.no .n{color:var(--sub);font-weight:400}
+.zsum{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.zsum b{font-family:var(--f-disp);font-weight:400;font-size:24px;color:var(--sea)}
+.reset{border:1px dashed var(--line);background:none;border-radius:10px;padding:6px 12px;color:var(--sub);font-size:12px;cursor:pointer;margin-top:14px}
+
+.qcard{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px}
+.qmeta{display:flex;justify-content:space-between;font-size:12px;color:var(--sub)}
+.qtext{font-size:17px;font-weight:700;margin:10px 0 14px;text-wrap:balance}
+.qopts{display:flex;flex-direction:column;gap:8px}
+.qopts button{text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:12px 14px;cursor:pointer;font-size:15px}
+.qopts button:hover{border-color:var(--sea)}
+.qopts button.ok{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--paper));font-weight:700}
+.qopts button.ng{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--paper))}
+.qexp{font-size:13px;color:var(--sub);margin-top:12px}
+.qnext{margin-top:12px;width:100%;height:52px;border:0;border-radius:14px;background:var(--sea);color:var(--paper);font-weight:700;font-size:16px;cursor:pointer}
+.qend{text-align:center}
+.qend .sc{font-family:var(--f-disp);font-size:56px;color:var(--buoy);line-height:1.1}
+.foot{font-size:12px;color:var(--sub);margin-top:24px}
+.foot a{color:var(--sea)}
+@media (prefers-reduced-motion:reduce){.meter i{transition:none}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="brand"><h1>ウキ<span>まち</span></h1><a href="../">← 潮どき愛知</a></div>
+  <div class="seg" role="tablist">
+    <button role="tab" data-v="game" aria-selected="true">ウキ釣り</button>
+    <button role="tab" data-v="quiz" aria-selected="false">魚クイズ</button>
+    <button role="tab" data-v="zukan" aria-selected="false">図鑑</button>
+  </div>
+</header>
+
+<main>
+<div id="v-game">
+  <section>
+    <div class="stats"><span>今日の釣果 <b class="num" id="sToday">0</b>匹</span><span>図鑑 <b class="num" id="sZukan">0</b></span><span id="sSeason"></span></div>
+    <div class="pond" id="pond"><canvas id="cv" aria-label="水面とウキ"></canvas><div class="msg" id="msg"></div></div>
+    <div class="meters" id="meters" hidden>
+      <span>糸の張り</span><div class="meter ten" id="mTen"><i></i></div>
+      <span>寄せ</span><div class="meter" id="mPro"><i></i></div>
+    </div>
+    <button class="act" id="act">投げる</button>
+    <div class="hint" id="hint">ウキが沈みきったら「合わせる」。チョンチョンという小さな動きは前アタリなので我慢。</div>
+    <div id="result"></div>
+  </section>
+</div>
+
+<div id="v-quiz" hidden><section id="quiz"></section></div>
+
+<div id="v-zukan" hidden><section id="zukan"></section></div>
+
+<div class="foot">釣れる魚は、今の季節と時間帯に愛知で実際に釣れやすい魚ほど出やすくなっています。釣りの合間に遊ぶときは、竿から目を離しすぎないように。</div>
+</main>
+</div>
+
+<script>
+__FISHDATA__
+
+/* ゲーム用の大きさ [最小cm, 最大cm, 引きの強さ1〜5] */
+const SIZE={aji:[10,35,2],saba:[15,42,3],iwashi:[8,18,1],haze:[6,20,1],kisu:[10,28,2],karei:[15,45,3],kasago:[10,30,2],mebaru:[10,28,2],ainame:[15,45,3],kurodai:[20,55,4],seabass:[30,90,5],aori:[15,45,3],tachiuo:[60,120,4],aomono:[30,80,5],hirame:[30,80,4],sayori:[15,35,1],kawahagi:[10,28,2],mejina:[15,45,4],kijihata:[20,45,3],tako:[20,60,3],hiika:[5,12,1],konoshiro:[15,28,2]};
+const JUNK=[{id:"boot",n:"長靴",msg:"重い…と思ったら長靴。持ち帰って捨てよう"},{id:"can",n:"空き缶",msg:"空き缶が釣れた。ゴミ拾いも釣り人の仕事"},{id:"weed",n:"海藻",msg:"海藻が絡んできた"}];
+const ALL=FISH.map(f=>({id:f.id,n:f.n})).concat(JUNK);
+const NAME=Object.fromEntries(ALL.map(x=>[x.id,x.n]));
+const FBY=Object.fromEntries(FISH.map(f=>[f.id,f]));
+
+/* 保存（この端末だけ） */
+const store={
+  get(k,d){try{const v=localStorage.getItem("ukimachi."+k);return v?JSON.parse(v):d;}catch(e){return d;}},
+  set(k,v){try{localStorage.setItem("ukimachi."+k,JSON.stringify(v));}catch(e){}}
+};
+let zk=store.get("zukan",{}); // id: {count, best}
+const todayKey=()=>{const d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();};
+let today=store.get("today",{d:"",n:0}); if(today.d!==todayKey()) today={d:todayKey(),n:0};
+
+const $=id=>document.getElementById(id);
+function nowCtx(){const d=new Date(),h=d.getHours()+d.getMinutes()/60;const m=(h>=4.5&&h<7)||(h>=16.5&&h<19)?"m":(h>=7&&h<16.5)?"d":"n";return {mo:d.getMonth(),tm:m};}
+function pickCatch(){
+  const {mo,tm}=nowCtx(); const pool=[]; let sum=0;
+  FISH.forEach(f=>{const s=f.season[mo];let w=s===2?6:s===1?3:.35;w*=.3+f.time[tm];pool.push([f.id,w]);sum+=w;});
+  JUNK.forEach(j=>{const w=sum*.025;pool.push([j.id,w]);});
+  const tot=pool.reduce((a,b)=>a+b[1],0); let r=Math.random()*tot;
+  for(const [id,w] of pool){if((r-=w)<=0)return id;} return pool[0][0];
+}
+function seasonLabel(){const {mo,tm}=nowCtx();const t={m:"マヅメ",d:"日中",n:"夜"}[tm];const peak=FISH.filter(f=>f.season[mo]===2).length;return `${mo+1}月・${t}（旬の魚 ${peak}種）`;}
+
+/* ===== 描画（水面・ウキ） ===== */
+const cv=$("cv"), cx=cv.getContext("2d");
+let W=0,H=0,DPR=1;
+function resize(){DPR=Math.min(2,window.devicePixelRatio||1);W=cv.clientWidth;H=cv.clientHeight;cv.width=W*DPR;cv.height=H*DPR;cx.setTransform(DPR,0,0,DPR,0,0);}
+function skyColors(){
+  const h=new Date().getHours();
+  if(h>=19||h<4) return ["#0b1d33","#13304a","#0d2a3a","#081a24"];
+  if(h<7||h>=17) return ["#f2a65a","#f6d3a0","#2c6b80","#163f4f"];
+  return ["#8fc9e3","#d7eef6","#2a7f99","#145266"];
+}
+const G={state:"idle",t:0,float:{x:.62,y:.62,dip:0},bite:null,fight:null,fish:null,msg:"",big:false,shake:0,line:0};
+function draw(time){
+  const [s1,s2,w1,w2]=skyColors(), hz=H*.38;
+  let g=cx.createLinearGradient(0,0,0,hz); g.addColorStop(0,s1); g.addColorStop(1,s2); cx.fillStyle=g; cx.fillRect(0,0,W,hz);
+  g=cx.createLinearGradient(0,hz,0,H); g.addColorStop(0,w1); g.addColorStop(1,w2); cx.fillStyle=g; cx.fillRect(0,hz,W,H-hz);
+  // 対岸の堤防
+  cx.fillStyle="rgba(15,42,51,.55)"; cx.fillRect(W*.05,hz-6,W*.35,6); cx.fillRect(W*.37,hz-14,6,14);
+  // 波
+  cx.strokeStyle="rgba(255,255,255,.22)"; cx.lineWidth=1.2;
+  for(let i=0;i<9;i++){const y=hz+12+i*(H-hz)/9, a=time/900+i;cx.beginPath();for(let x=0;x<=W;x+=12){const yy=y+Math.sin(x/38+a)*2.2;x?cx.lineTo(x,yy):cx.moveTo(x,yy);}cx.stroke();}
+  // 竿先と糸
+  const rodX=W*.08, rodY=H*.95, sh=G.shake?Math.sin(time/30)*G.shake*6:0;
+  const tipX=W*.3+sh, tipY=H*.22+(G.state==="fight"?18+G.line*10:0);
+  cx.strokeStyle="#3a2a1c"; cx.lineWidth=5; cx.lineCap="round"; cx.beginPath(); cx.moveTo(rodX,rodY); cx.lineTo(tipX,tipY); cx.stroke();
+  if(G.state!=="idle"&&G.state!=="result"){
+    const fx=G.float.x*W, fy=G.float.y*H+Math.sin(time/500)*2+G.float.dip;
+    cx.strokeStyle="rgba(255,255,255,.75)"; cx.lineWidth=1; cx.beginPath(); cx.moveTo(tipX,tipY); cx.quadraticCurveTo((tipX+fx)/2,Math.max(tipY,fy)-(G.state==="fight"?0:30),fx,fy-14); cx.stroke();
+    // 波紋
+    if(G.float.dip>4){cx.strokeStyle="rgba(255,255,255,.5)";cx.beginPath();cx.ellipse(fx,G.float.y*H+2,10+G.float.dip,4+G.float.dip/4,0,0,Math.PI*2);cx.stroke();}
+    // ウキ（上が赤、下が白。沈むと水面下は見えない）
+    const top=fy-16, wl=G.float.y*H;
+    cx.save(); cx.beginPath(); cx.rect(0,0,W,wl); cx.clip();
+    cx.fillStyle="#e0561c"; cx.beginPath(); cx.ellipse(fx,top+6,5,8,0,0,Math.PI*2); cx.fill();
+    cx.fillStyle="#f4f4f4"; cx.beginPath(); cx.ellipse(fx,top+15,5,6,0,0,Math.PI*2); cx.fill();
+    cx.fillStyle="#222"; cx.fillRect(fx-.8,top-8,1.6,8);
+    cx.restore();
+    if(G.state==="fight"){ // 魚影
+      const p=G.fight.p/100, sx=fx+(tipX-fx)*p*.5, sy=wl+18+Math.sin(time/120)*3, str=(SIZE[G.fish]||[0,0,2])[2];
+      cx.fillStyle="rgba(5,20,28,.35)"; cx.beginPath(); cx.ellipse(sx,sy,14+str*4,6,Math.sin(time/300)*.3,0,Math.PI*2); cx.fill();
+    }
+  }
+}
+
+/* ===== ゲーム進行 ===== */
+let raf=0,last=0,holding=false;
+function loop(ts){
+  const dt=Math.min(.05,(ts-(last||ts))/1000); last=ts; step(dt,ts); draw(ts);
+  raf=(G.state==="idle"||G.state==="result")&&!G.anim?0:requestAnimationFrame(loop);
+}
+function kick(){if(!raf){last=0;raf=requestAnimationFrame(loop);}}
+function setMsg(t,big){$("msg").textContent=t;$("msg").className="msg"+(big?" big":"");}
+function setAct(t,reel){$("act").textContent=t;$("act").classList.toggle("reel",!!reel);}
+function cast(){
+  $("result").innerHTML=""; G.fish=pickCatch(); G.state="wait"; G.t=0; G.float.dip=0; G.float.x=.55+Math.random()*.2; G.float.y=.6+Math.random()*.12;
+  G.biteAt=2.5+Math.random()*7; G.nibbles=[]; const n=Math.floor(Math.random()*4);
+  for(let i=0;i<n;i++) G.nibbles.push(.8+Math.random()*(G.biteAt-1));
+  const str=(SIZE[G.fish]||[0,0,2])[2]; G.window=1.05-str*.09;
+  setMsg("アタリを待つ…"); setAct("合わせる"); $("meters").hidden=true; kick();
+}
+function step(dt,ts){
+  if(G.state==="wait"){
+    G.t+=dt; let dip=0;
+    G.nibbles.forEach(t=>{const d=G.t-t;if(d>0&&d<.25)dip=Math.max(dip,Math.sin(d/.25*Math.PI)*5);});
+    if(G.t>=G.biteAt){G.state="bite";G.t=0;try{navigator.vibrate&&navigator.vibrate(60);}catch(e){}}
+    G.float.dip=dip;
+  }else if(G.state==="bite"){
+    G.t+=dt; G.float.dip=Math.min(26,G.t*90);
+    if(G.t>G.window){G.state="idle";G.float.dip=0;setMsg("エサだけ取られた…",false);setAct("投げる");}
+  }else if(G.state==="fight"){
+    const F=G.fight, str=(SIZE[G.fish]||[0,0,2])[2];
+    F.t+=dt; F.surgeT-=dt;
+    if(F.surgeT<=0){F.surge=!F.surge;F.surgeT=F.surge?.3+Math.random()*(.15*str+.2):1.4+Math.random()*2.6;if(F.surge)try{navigator.vibrate&&navigator.vibrate(30);}catch(e){}}
+    if(holding){F.p+=(26-str*2.4)*(F.surge?.35:1)*dt;F.ten+=(16+str*6+(F.surge?45:0))*dt;}
+    else{F.ten-=(60+(F.surge?-25:0))*dt;F.p-=(1+str*.5)*(F.surge?2.2:1)*dt;}
+    F.ten=Math.max(0,F.ten); F.p=Math.max(0,F.p);
+    G.shake=F.surge?1:holding?.35:0; G.line=F.ten/100;
+    $("mTen").firstChild.style.width=Math.min(100,F.ten)+"%"; $("mPro").firstChild.style.width=Math.min(100,F.p)+"%";
+    $("mTen").className="meter ten"+(F.ten>80?" hi":F.ten>55?" mid":"");
+    setMsg(F.surge?"ググッ！ 走った！":holding?"巻いてる…":"糸をゆるめた");
+    if(F.ten>=100) end("bare","糸が切れた！ 張りすぎ注意");
+    else if(F.p>=100) end("catch");
+    else if(F.t>45) end("bare","バレた…（時間切れ）");
+  }
+}
+function hook(){
+  if(G.state==="wait"){G.state="idle";G.float.dip=0;setMsg("早合わせ！ 魚が逃げた");setAct("投げる");return;}
+  if(G.state==="bite"){
+    G.state="fight"; G.fight={p:8,ten:20,t:0,surge:false,surgeT:.8}; $("meters").hidden=false;
+    setAct("長押しで巻く",true); $("hint").textContent="押している間は巻く。張りが赤くなったら離して休ませる。魚が走ったら無理しない。";
+  }
+}
+function end(kind,text){
+  G.state="result"; G.shake=0; G.line=0; holding=false; $("meters").hidden=true; setAct("もう一度投げる");
+  $("hint").textContent="ウキが沈みきったら「合わせる」。チョンチョンという小さな動きは前アタリなので我慢。";
+  if(kind!=="catch"){setMsg(text);kick();return;}
+  const id=G.fish, sz=SIZE[id], junk=!sz;
+  let size=null; if(sz) size=Math.round((sz[0]+(sz[1]-sz[0])*Math.pow(Math.random(),1.7))*10)/10;
+  const rec=zk[id]||{count:0,best:0}, first=!rec.count, pb=size&&size>rec.best;
+  rec.count++; if(pb) rec.best=size; zk[id]=rec; store.set("zukan",zk);
+  if(!junk){today.n++;store.set("today",today);}
+  setMsg(junk?NAME[id]+"…":"釣れた！",!junk);
+  const f=FBY[id], peak=f&&f.season[new Date().getMonth()]===2;
+  $("result").innerHTML=`<div class="result"><span class="fn">${NAME[id]}${first?'<span class="badge">図鑑に追加</span>':pb&&rec.count>1?'<span class="badge">自己記録</span>':""}</span><span class="sz num">${size?size+"cm":""}</span>
+    <span class="note">${junk?JUNK.find(j=>j.id===id).msg:`${peak?"今が最盛期。":""}${f.how}で狙える魚。${f.tip}`}</span></div>`;
+  updStats(); kick();
+}
+function updStats(){$("sToday").textContent=today.n;$("sZukan").textContent=Object.keys(zk).filter(k=>zk[k].count).length+"/"+ALL.length;$("sSeason").textContent=seasonLabel();}
+
+const act=$("act");
+function press(e){
+  e.preventDefault();
+  if(G.state==="idle"||G.state==="result") cast();
+  else if(G.state==="wait"||G.state==="bite") hook();
+  else if(G.state==="fight"){holding=true;}
+}
+function release(){holding=false;}
+act.addEventListener("pointerdown",press);
+$("pond").addEventListener("pointerdown",press);
+window.addEventListener("pointerup",release); window.addEventListener("pointercancel",release);
+act.addEventListener("keydown",e=>{if(e.key===" "||e.key==="Enter"){if(!e.repeat)press(e);}});
+act.addEventListener("keyup",e=>{if(e.key===" "||e.key==="Enter")release();});
+document.addEventListener("visibilitychange",()=>{if(document.hidden){holding=false;if(G.state==="fight"||G.state==="wait"||G.state==="bite"){G.state="idle";G.float.dip=0;setMsg("中断しました");setAct("投げる");$("meters").hidden=true;}}});
+window.addEventListener("resize",()=>{resize();draw(performance.now());});
+
+/* ===== 魚クイズ ===== */
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+/* クイズ用のエサの代表名 */
+const QBAIT={aji:"アミエビ",saba:"アミエビ",iwashi:"アミエビ",haze:"青イソメ",kisu:"石ゴカイ（ジャリメ）",karei:"岩イソメ",kasago:"サバの切り身",mebaru:"シラサエビ",ainame:"岩イソメ",kurodai:"カニ・イガイ",seabass:"ルアー",aori:"エギ",tachiuo:"キビナゴ",aomono:"メタルジグ",hirame:"ミノー（ルアー）",sayori:"アミエビ",kawahagi:"アサリのむき身",mejina:"オキアミ",kijihata:"ワーム",tako:"豚の脂身（タコテンヤ）",hiika:"エギ",konoshiro:"アミエビ"};
+const firstBait=id=>QBAIT[id];
+/* 釣り方が似ている魚どうしは選択肢に並べない */
+const howTok=f=>f.how.split(/[・（）]/).filter(Boolean);
+const similar=(a,b)=>howTok(a).some(x=>howTok(b).some(y=>x.includes(y)||y.includes(x)));
+function makeQ(){
+  const types=["rig","month","bait","night","day","how"];
+  for(let tries=0;tries<20;tries++){
+    const t=pick(types), f=pick(FISH), T=TACKLE[f.id];
+    if(t==="rig"){
+      const rig=T.rig.split(/[。]/)[0];
+      const others=shuffle(FISH.filter(x=>x.id!==f.id&&!similar(x,f))).slice(0,3);
+      return {q:`「${rig}」で狙う魚は？`,opts:shuffle([f.n,...others.map(x=>x.n)]),a:f.n,exp:`${f.n}：${T.tip}`};
+    }
+    if(t==="month"){
+      const peaks=f.season.map((v,i)=>v===2?i:-1).filter(i=>i>=0), offs=f.season.map((v,i)=>v===0?i:-1).filter(i=>i>=0);
+      if(!peaks.length||offs.length<3) continue;
+      const a=pick(peaks)+1+"月";
+      return {q:`${f.n}の最盛期に入っている月は？`,opts:shuffle([a,...shuffle(offs).slice(0,3).map(i=>i+1+"月")]),a,exp:`${f.n}の最盛期は ${peaks.map(i=>i+1).join("・")}月。`};
+    }
+    if(t==="bait"){
+      const a=firstBait(f.id), others=shuffle([...new Set(FISH.map(x=>firstBait(x.id)).filter(b=>b!==a&&!T.bait.includes(b.replace(/（.*）/,""))&&!(b.includes("ルアー")&&T.bait.includes("ルアー"))))]).slice(0,3);
+      if(others.length<3) continue;
+      return {q:`${f.n}釣りでよく使うエサ（または擬似餌）は？`,opts:shuffle([a,...others]),a,exp:`${f.n}のエサ：${T.bait}`};
+    }
+    if(t==="night"||t==="day"){
+      const k=t==="night"?"n":"d", good=FISH.filter(x=>x.time[k]>=.85), bad=FISH.filter(x=>x.time[k]<=.3);
+      if(!good.length||bad.length<3) continue;
+      const g=pick(good);
+      return {q:`次のうち、${t==="night"?"夜":"日中"}に特に釣りやすい魚は？`,opts:shuffle([g.n,...shuffle(bad).slice(0,3).map(x=>x.n)]),a:g.n,exp:`${g.n}：${g.tip}`};
+    }
+    if(t==="how"){
+      const others=shuffle([...new Map(FISH.filter(x=>!similar(x,f)).map(x=>[x.how,x])).values()]).slice(0,3);
+      return {q:`${f.n}の代表的な釣り方は？`,opts:shuffle([f.how,...others.map(x=>x.how)]),a:f.how,exp:`道具：${T.gear}`};
+    }
+  }
+  return makeQ();
+}
+const Q={i:0,score:0,list:[],answered:false};
+function startQuiz(){Q.i=0;Q.score=0;Q.answered=false;const seen=new Set();Q.list=[];while(Q.list.length<10){const q=makeQ();if(!seen.has(q.q)){seen.add(q.q);Q.list.push(q);}}renderQuiz();}
+function renderQuiz(){
+  const el=$("quiz"), best=store.get("quizBest",0);
+  if(Q.i>=Q.list.length){
+    const nb=Q.score>best; if(nb) store.set("quizBest",Q.score);
+    el.innerHTML=`<div class="qcard qend"><div class="qmeta"><span>結果</span><span>最高 <span class="num">${Math.max(best,Q.score)}</span>/10</span></div><div class="sc num">${Q.score}<small style="font-size:20px">/10</small></div><p>${Q.score>=9?"名人級！":Q.score>=6?"なかなかの釣り通":"潮どき愛知の魚図鑑で復習しよう"}${nb?"（自己ベスト更新）":""}</p><button class="qnext" id="qagain">もう一度</button></div>`;
+    $("qagain").onclick=startQuiz; return;
+  }
+  const q=Q.list[Q.i];
+  el.innerHTML=`<div class="qcard"><div class="qmeta"><span>第<span class="num">${Q.i+1}</span>問 / 10</span><span>正解 <span class="num">${Q.score}</span></span></div>
+    <div class="qtext">${q.q}</div><div class="qopts">${q.opts.map((o,i)=>`<button data-i="${i}">${o}</button>`).join("")}</div><div id="qafter"></div></div>`;
+  el.querySelectorAll(".qopts button").forEach(b=>b.onclick=()=>{
+    if(Q.answered) return; Q.answered=true; const o=q.opts[+b.dataset.i], ok=o===q.a; if(ok)Q.score++;
+    el.querySelectorAll(".qopts button").forEach(x=>{const v=q.opts[+x.dataset.i];if(v===q.a)x.classList.add("ok");else if(x===b)x.classList.add("ng");});
+    $("qafter").innerHTML=`<div class="qexp">${ok?"正解！":"ざんねん。"}${q.exp}</div><button class="qnext" id="qn">${Q.i===9?"結果を見る":"次の問題"}</button>`;
+    $("qn").onclick=()=>{Q.i++;Q.answered=false;renderQuiz();};
+  });
+}
+
+/* ===== 図鑑 ===== */
+function fishIcon(c,caught,junk){
+  const x=c.getContext("2d"),w=c.width=120,h=c.height=44;
+  x.fillStyle=caught?getComputedStyle(document.documentElement).getPropertyValue("--sea").trim()||"#1f6f86":"rgba(128,140,145,.35)";
+  if(junk){x.fillRect(46,8,28,28);return;}
+  x.beginPath();x.ellipse(54,22,30,12,0,0,Math.PI*2);x.fill();
+  x.beginPath();x.moveTo(82,22);x.lineTo(102,8);x.lineTo(102,36);x.closePath();x.fill();
+  if(caught){x.fillStyle="#fff";x.beginPath();x.arc(36,19,3,0,Math.PI*2);x.fill();}
+}
+function renderZukan(){
+  const n=ALL.filter(a=>zk[a.id]&&zk[a.id].count).length, total=Object.values(zk).reduce((a,b)=>a+b.count,0);
+  $("zukan").innerHTML=`<div class="zsum"><span>集めた種類 <b class="num">${n}</b> / ${ALL.length}</span><span class="num" style="font-size:12px;color:var(--sub)">これまでに ${total} 回釣り上げ</span></div>
+  <div class="zk">${ALL.map(a=>{const r=zk[a.id];const c=r&&r.count;return `<div class="zc ${c?"":"no"}"><canvas data-id="${a.id}" data-c="${c?1:0}" data-j="${SIZE[a.id]?0:1}"></canvas><div class="n">${c?a.n:"？？？"}</div><div class="r num">${c?(r.best?"最大 "+r.best+"cm・":"")+r.count+"回":"未発見"}</div></div>`;}).join("")}</div>
+  <button class="reset" id="zreset">記録を消す</button><span id="zconfirm"></span>`;
+  $("zukan").querySelectorAll("canvas").forEach(c=>fishIcon(c,c.dataset.c==="1",c.dataset.j==="1"));
+  $("zreset").onclick=()=>{$("zconfirm").innerHTML=` <button class="reset" id="zyes" style="color:var(--bad);border-color:var(--bad)">本当に消す</button>`;$("zyes").onclick=()=>{zk={};store.set("zukan",zk);today={d:todayKey(),n:0};store.set("today",today);updStats();renderZukan();};};
+}
+
+/* ===== 画面切替 ===== */
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{
+  const v=b.dataset.v;
+  document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-selected",String(x===b)));
+  ["game","quiz","zukan"].forEach(k=>$("v-"+k).hidden=k!==v);
+  if(v==="quiz"&&!Q.list.length) startQuiz();
+  if(v==="zukan") renderZukan();
+  if(v==="game"){resize();draw(performance.now());}
+});
+resize(); updStats(); draw(performance.now()); setMsg("「投げる」を押してスタート");
+setInterval(()=>{if(G.state==="idle"||G.state==="result")draw(performance.now());},2000); // 波をゆっくり動かす
+</script>

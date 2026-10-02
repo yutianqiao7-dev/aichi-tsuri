@@ -35,4 +35,17 @@ docs.mkdir(exist_ok=True)
               {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}],
 }, ensure_ascii=False, indent=2), encoding="utf-8")
 (docs / ".nojekyll").write_text("")
+
+# ひまつぶしアプリ（ウキまち）: 魚データは src.html の FISH・TACKLE をそのまま使う
+import re
+src = (d / "src.html").read_text(encoding="utf-8")
+fish = re.search(r"const FISH = \[.*?\r?\n\];", src, re.S).group(0)
+tackle = re.search(r"const TACKLE = \{.*?\r?\n\};", src, re.S).group(0)
+hima = (d / "hima_src.html").read_text(encoding="utf-8").replace("__FISHDATA__", fish + "\n" + tackle)
+(docs / "hima").mkdir(exist_ok=True)
+hhead = (HEAD.replace('href="manifest.webmanifest"', 'href="../manifest.webmanifest"')
+             .replace('href="icon-', 'href="../icon-')
+             .replace("潮汐・天気・風から、いま釣れやすい魚と釣り場、仕掛けとエサがわかる釣りアプリ", "釣りの待ち時間に遊べるウキ釣りゲームと魚クイズ"))
+(docs / "hima" / "index.html").write_text(hhead + hima + "\n</body>\n</html>\n", encoding="utf-8")
+(d / "ukimachi.html").write_text(hima, encoding="utf-8")
 print("built", len(body))
