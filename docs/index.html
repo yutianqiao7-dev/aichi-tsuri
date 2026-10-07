@@ -742,7 +742,17 @@ async function fetchWeather(){
 (async()=>{
   const fail=()=>{WX.state="none";renderAll();};
   if(!window.claude||!window.claude.use){
-    try{WX.data=await fetchWeather();WX.state="ok";renderAll();}catch(e){fail();}
+    // 開いたとき・画面に戻ったとき・開きっぱなしなら30分ごとに取り直す
+    let busy=false;
+    const refresh=async()=>{
+      if(busy||(WX.data&&Date.now()-WX.data.updated<30*60000)) return;
+      busy=true;
+      try{WX.data=await fetchWeather();WX.state="ok";renderAll();}catch(e){if(!WX.data)fail();}
+      busy=false;
+    };
+    await refresh();
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh();});
+    setInterval(()=>{if(!document.hidden)refresh();},5*60000);
     return;
   }
   let db=null; try{db=await window.claude.use("db");}catch(e){}
